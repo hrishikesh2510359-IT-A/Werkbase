@@ -1,0 +1,31 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Dashboard</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="dash-page">
+        <div class="dash-header">
+            <div class="dash-welcome">
+                <h1>Welcome back, {{ request.user.full_name }}</h1>
+                <span class="role-pill">{{ request.user.get_role_display }}</span>
+            </div>
+            <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
+        </div>
+
+        <div class="card-grid">
+            {% for card in cards %}
+                <div class="stat-card">
+                    <p class="stat-value">{{ card.value }}</p>
+                    <p class="stat-label">{{ card.label }}</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <p class="dash-footer-note">Full dashboard functionality rolling out in upcoming sprints.</p>
+    </div>
+</body>
+</html>

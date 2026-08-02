@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Sign Up</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="logo">Werkbase</div>
+            <h1>Create your account</h1>
+
+            {% if form.non_field_errors %}
+                <div class="error-banner">{{ form.non_field_errors.0 }}</div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="field">
+                    <label for="id_full_name">Full Name</label>
+                    {{ form.full_name }}
+                    {% if form.full_name.errors %}<div class="notice-banner">{{ form.full_name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="field">
+                    <label for="id_email">Email</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}<div class="notice-banner">{{ form.email.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="field">
+                    <label for="id_role">Role</label>
+                    {{ form.role }}
+                    {% if form.role.errors %}<div class="notice-banner">{{ form.role.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="field">
+                    <label for="id_password1">Password</label>
+                    {{ form.password1 }}
+                    {% if form.password1.errors %}<div class="notice-banner">{{ form.password1.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="field">
+                    <label for="id_password2">Confirm Password</label>
+                    {{ form.password2 }}
+                    {% if form.password2.errors %}<div class="error-banner">{{ form.password2.errors.0 }}</div>{% endif %}
+                </div>
+                <button type="submit" class="btn-primary">Sign Up</button>
+            </form>
+
+            <div class="footer-link">
+                Already have an account? <a href="{% url 'login' %}">Sign in</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
