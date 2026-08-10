@@ -3,19 +3,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Werkbase — Sign In</title>
+    <title>Werkbase — Company Sign In</title>
     <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
 </head>
 <body>
     <div class="auth-page">
         <div class="auth-card">
             <div class="logo">Werkbase</div>
-            <h1>Sign in to your account</h1>
+            <h1>Company Sign In</h1>
 
             {% if error %}
                 <div class="error-banner">{{ error }}</div>
             {% endif %}
 
+            <!-- No signup link anywhere on this page by design: company accounts
+                 are only ever created by an HR Admin via create_company_user_view. -->
             <form method="post">
                 {% csrf_token %}
                 <div class="field">
@@ -45,7 +47,7 @@
             </a>
 
             <div class="footer-link">
-                Don't have an account? <a href="{% url 'signup' %}">Sign up</a>
+                <a href="{% url 'candidate_login' %}">Candidate login</a>
             </div>
         </div>
     </div>

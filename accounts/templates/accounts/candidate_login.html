@@ -1,0 +1,44 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Candidate Sign In</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="logo">Werkbase</div>
+            <h1>Candidate Sign In</h1>
+
+            {% if error %}
+                <div class="error-banner">{{ error }}</div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="field">
+                    <label for="id_email">Email</label>
+                    {{ form.email }}
+                </div>
+                <div class="field">
+                    <label for="id_password">Password</label>
+                    {{ form.password }}
+                </div>
+                <button type="submit" class="btn-primary">Log In</button>
+                <div class="helper-row">
+                    <a href="#">Forgot password?</a>
+                </div>
+            </form>
+
+            <div class="footer-link">
+                Don't have an account? <a href="{% url 'candidate_signup' %}">Sign up</a>
+            </div>
+            <div class="footer-link">
+                <a href="{% url 'company_login' %}">Company login</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,60 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Create Company User</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="logo">Werkbase</div>
+            <h1>Create Company User</h1>
+
+            {% if created_user %}
+                <div class="notice-banner">Created {{ created_user.full_name }} ({{ created_user.get_role_display }}).</div>
+            {% endif %}
+            {% if form.non_field_errors %}
+                <div class="error-banner">{{ form.non_field_errors.0 }}</div>
+            {% endif %}
+
+            <!-- Security boundary: this is the ONLY page where a role dropdown
+                 is shown, and only an HR Admin (see hr_admin_required) can reach it. -->
+            <form method="post">
+                {% csrf_token %}
+                <div class="field">
+                    <label for="id_full_name">Full Name</label>
+                    {{ form.full_name }}
+                    {% if form.full_name.errors %}<div class="notice-banner">{{ form.full_name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="field">
+                    <label for="id_email">Email</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}<div class="notice-banner">{{ form.email.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="field">
+                    <label for="id_role">Role</label>
+                    {{ form.role }}
+                    {% if form.role.errors %}<div class="notice-banner">{{ form.role.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="field">
+                    <label for="id_password1">Password</label>
+                    {{ form.password1 }}
+                    {% if form.password1.errors %}<div class="notice-banner">{{ form.password1.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="field">
+                    <label for="id_password2">Confirm Password</label>
+                    {{ form.password2 }}
+                    {% if form.password2.errors %}<div class="error-banner">{{ form.password2.errors.0 }}</div>{% endif %}
+                </div>
+                <button type="submit" class="btn-primary">Create User</button>
+            </form>
+
+            <div class="footer-link">
+                <a href="{% url 'dashboard' %}">Back to dashboard</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

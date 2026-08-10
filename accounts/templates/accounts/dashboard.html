@@ -13,7 +13,12 @@
                 <h1>Welcome back, {{ request.user.full_name }}</h1>
                 <span class="role-pill">{{ request.user.get_role_display }}</span>
             </div>
-            <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
+            <div>
+                {% if request.user.role == 'HR_ADMIN' %}
+                    <a href="{% url 'create_company_user' %}" class="btn-logout" style="margin-right:0.5rem;">Create User</a>
+                {% endif %}
+                <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
+            </div>
         </div>
 
         <div class="card-grid">

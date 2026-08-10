@@ -1,0 +1,19 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="logo">Werkbase</div>
+            <h1>Choose how you'd like to sign in</h1>
+            <a href="{% url 'candidate_login' %}" class="btn-primary" style="display:block; text-align:center; text-decoration:none; margin-bottom:0.75rem;">I'm a Candidate</a>
+            <a href="{% url 'company_login' %}" class="btn-google" style="text-decoration:none;">Company Login</a>
+        </div>
+    </div>
+</body>
+</html>
