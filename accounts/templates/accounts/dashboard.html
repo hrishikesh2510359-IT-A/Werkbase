@@ -21,14 +21,194 @@
             </div>
         </div>
 
-        <div class="card-grid">
-            {% for card in cards %}
-                <div class="stat-card">
-                    <p class="stat-value">{{ card.value }}</p>
-                    <p class="stat-label">{{ card.label }}</p>
-                </div>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notice-strip">{{ message }}</div>
             {% endfor %}
-        </div>
+        {% endif %}
+
+        {% if stats %}
+            <div class="card-grid" style="margin-bottom:1.5rem;">
+                {% for stat in stats %}
+                    <div class="stat-card">
+                        <p class="stat-value">{{ stat.value }}</p>
+                        <p class="stat-label">{{ stat.label }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if request.user.role == 'HIRING_MANAGER' %}
+            <div class="record-actions" style="margin-bottom:1rem;">
+                <a href="{% url 'raise_vacancy' %}" class="btn-small">Raise Vacancy Request</a>
+                <a href="{% url 'my_vacancy_requests' %}" class="btn-small">All My Requests</a>
+            </div>
+
+            <details class="wide-card" style="margin-bottom:1.25rem;">
+                <summary style="cursor:pointer; font-weight:600; color:var(--color-primary);">Pending Vacancy Requests ({{ pending_requests|length }})</summary>
+                <div class="record-list" style="margin-top:1rem;">
+                    {% for req in pending_requests %}
+                        <div class="record-row">
+                            <div>
+                                <p class="record-title">{{ req.job_title }}</p>
+                                <p class="record-meta">{{ req.get_department_display }} · Priority: {{ req.get_priority_display }}</p>
+                            </div>
+                            <a href="{% url 'edit_vacancy_request' req.pk %}" class="btn-small">Edit</a>
+                        </div>
+                    {% empty %}
+                        <p class="empty-state">Nothing pending.</p>
+                    {% endfor %}
+                </div>
+            </details>
+
+            <h1 style="font-size:1rem; margin-bottom:0.75rem;">Recent Vacancy Requests</h1>
+            <div class="record-list">
+                {% for req in recent_requests %}
+                    <div class="record-row">
+                        <div>
+                            <p class="record-title">{{ req.job_title }}</p>
+                            <p class="record-meta">{{ req.get_department_display }} · {{ req.num_openings }} opening{{ req.num_openings|pluralize }}</p>
+                        </div>
+                        <span class="status-badge status-{{ req.status|lower }}">{{ req.get_status_display }}</span>
+                    </div>
+                {% empty %}
+                    <p class="empty-state">You haven't raised any vacancy requests yet.</p>
+                {% endfor %}
+            </div>
+
+        {% elif request.user.role == 'HR_RECRUITER' %}
+            <div class="record-actions" style="margin-bottom:1rem;">
+                <a href="{% url 'create_job_posting' %}" class="btn-small">Post a Job</a>
+                <a href="{% url 'job_posting_list' %}" class="btn-small">All My Postings</a>
+            </div>
+
+            <details class="wide-card" style="margin-bottom:1.25rem;">
+                <summary style="cursor:pointer; font-weight:600; color:var(--color-primary);">Pending Vacancies to Post ({{ pending_queue|length }})</summary>
+                <div class="record-list" style="margin-top:1rem;">
+                    {% for req in pending_queue %}
+                        <div class="record-row">
+                            <div>
+                                <p class="record-title">{{ req.job_title }}</p>
+                                <p class="record-meta">{{ req.get_department_display }} · Raised by {{ req.raised_by.full_name }}</p>
+                            </div>
+                            <a href="{% url 'create_job_posting' %}?from_vacancy={{ req.pk }}" class="btn-small">Post This Job</a>
+                        </div>
+                    {% empty %}
+                        <p class="empty-state">Nothing pending.</p>
+                    {% endfor %}
+                </div>
+            </details>
+
+            <h1 style="font-size:1rem; margin-bottom:0.75rem;">My Recent Postings</h1>
+            <div class="record-list">
+                {% for posting in recent_postings %}
+                    <div class="record-row">
+                        <div>
+                            <p class="record-title">{{ posting.job_title }}</p>
+                            <p class="record-meta">{{ posting.get_department_display }} · {{ posting.location }}</p>
+                        </div>
+                        <span class="status-badge status-{{ posting.status|lower }}">{{ posting.get_status_display }}</span>
+                    </div>
+                {% empty %}
+                    <p class="empty-state">You haven't posted any jobs yet.</p>
+                {% endfor %}
+            </div>
+
+        {% elif request.user.role == 'INTERVIEWER' %}
+            <div class="record-actions" style="margin-bottom:1rem;">
+                <a href="{% url 'interviewer_dashboard' %}" class="btn-small">View All Applicants</a>
+            </div>
+
+            <details class="wide-card" style="margin-bottom:1.25rem;">
+                <summary style="cursor:pointer; font-weight:600; color:var(--color-primary);">Awaiting Review ({{ pending_applicants|length }})</summary>
+                <div class="record-list" style="margin-top:1rem;">
+                    {% for app in pending_applicants %}
+                        <div class="record-row">
+                            <div>
+                                <p class="record-title">{{ app.candidate.full_name }}</p>
+                                <p class="record-meta">Applied to {{ app.job_posting.job_title }}</p>
+                            </div>
+                            <form method="post" action="{% url 'schedule_interview' app.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-small">Schedule Interview</button>
+                            </form>
+                        </div>
+                    {% empty %}
+                        <p class="empty-state">Nothing awaiting review.</p>
+                    {% endfor %}
+                </div>
+            </details>
+
+            <h1 style="font-size:1rem; margin-bottom:0.75rem;">Job Postings with Applicants</h1>
+            <div class="record-list">
+                {% for posting in postings_with_applicants %}
+                    <div class="record-row">
+                        <div>
+                            <p class="record-title">{{ posting.job_title }}</p>
+                            <p class="record-meta">{{ posting.get_department_display }}</p>
+                        </div>
+                        <a href="{% url 'interviewer_dashboard' %}" class="btn-small">View Applicants</a>
+                    </div>
+                {% empty %}
+                    <p class="empty-state">No job postings have applicants yet.</p>
+                {% endfor %}
+            </div>
+
+        {% elif request.user.role == 'CANDIDATE' %}
+            <div class="record-actions" style="margin-bottom:1rem;">
+                <a href="{% url 'browse_jobs' %}" class="btn-small">Browse Jobs</a>
+                <a href="{% url 'my_applications' %}" class="btn-small">All My Applications</a>
+            </div>
+
+            <h1 style="font-size:1rem; margin-bottom:0.75rem;">Latest Openings</h1>
+            <div class="record-list" style="margin-bottom:1.5rem;">
+                {% for posting in recent_jobs %}
+                    <div class="record-row">
+                        <div>
+                            <p class="record-title">{{ posting.job_title }}</p>
+                            <p class="record-meta">{{ posting.get_department_display }} · {{ posting.location }}</p>
+                        </div>
+                        <a href="{% url 'job_detail' posting.pk %}" class="btn-small">View</a>
+                    </div>
+                {% empty %}
+                    <p class="empty-state">No open positions right now.</p>
+                {% endfor %}
+            </div>
+
+            <h1 style="font-size:1rem; margin-bottom:0.75rem;">My Recent Applications</h1>
+            <div class="record-list">
+                {% for app in recent_applications %}
+                    <div class="record-row">
+                        <div>
+                            <p class="record-title">{{ app.job_posting.job_title }}</p>
+                            <p class="record-meta">Applied {{ app.applied_at|date:"M j, Y" }}</p>
+                        </div>
+                        <span class="status-badge status-{{ app.status|lower }}">{{ app.get_status_display }}</span>
+                    </div>
+                {% empty %}
+                    <p class="empty-state">You haven't applied to any jobs yet.</p>
+                {% endfor %}
+            </div>
+
+        {% elif request.user.role == 'HR_ADMIN' %}
+            <h1 style="font-size:1rem; margin-bottom:0.75rem;">Recently Created Company Users</h1>
+            <div class="record-list">
+                {% for u in recent_users %}
+                    <div class="record-row">
+                        <div>
+                            <p class="record-title">{{ u.full_name }}</p>
+                            <p class="record-meta">{{ u.email }}</p>
+                        </div>
+                        <span class="status-badge status-posted">{{ u.get_role_display }}</span>
+                    </div>
+                {% empty %}
+                    <p class="empty-state">No company users yet.</p>
+                {% endfor %}
+            </div>
+
+        {% else %}
+            <p class="empty-state">No pending actions in this stage yet — the {{ request.user.get_role_display }} workflow is rolling out in an upcoming module.</p>
+        {% endif %}
 
         <p class="dash-footer-note">Full dashboard functionality rolling out in upcoming sprints.</p>
     </div>

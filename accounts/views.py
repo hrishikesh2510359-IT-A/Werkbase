@@ -3,50 +3,81 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 
+from job_postings.models import Application, JobPosting, VacancyRequest
+
 from .decorators import hr_admin_required
 from .forms import CandidateSignupForm, CompanyUserCreateForm, LoginForm
 from .models import User
 
 GOOGLE_DEMO_EMAIL = "google.demo@werkbase.com"
 
-ROLE_CARDS = {
-    User.Role.HIRING_MANAGER: [
-        {"label": "Open Job Postings", "value": 4},
-        {"label": "Applications Received", "value": 27},
-        {"label": "Interviews Scheduled This Week", "value": 6},
-        {"label": "Candidates Shortlisted", "value": 9},
-    ],
-    User.Role.HR_RECRUITER: [
-        {"label": "Open Job Postings", "value": 4},
-        {"label": "Applications Received", "value": 27},
-        {"label": "Interviews Scheduled This Week", "value": 6},
-        {"label": "Candidates Shortlisted", "value": 9},
-    ],
-    User.Role.HR_MANAGER: [
-        {"label": "Open Job Postings", "value": 4},
-        {"label": "Applications Received", "value": 27},
-        {"label": "Interviews Scheduled This Week", "value": 6},
-        {"label": "Candidates Shortlisted", "value": 9},
-    ],
-    User.Role.INTERVIEWER: [
-        {"label": "Interviews Scheduled", "value": 5},
-        {"label": "Feedback Pending", "value": 2},
-        {"label": "Completed This Month", "value": 11},
-    ],
-    User.Role.ONBOARDING_COORDINATOR: [
-        {"label": "Offers Sent", "value": 8},
-        {"label": "Joining Formalities Pending", "value": 3},
-    ],
-    User.Role.HR_ADMIN: [
-        {"label": "Active User Accounts", "value": 7},
-        {"label": "System Configuration", "value": "All systems normal"},
-    ],
-    User.Role.CANDIDATE: [
-        {"label": "Applications Submitted", "value": 3},
-        {"label": "Application Status", "value": "Under Review"},
-        {"label": "Upcoming Interview", "value": "No interviews scheduled"},
-    ],
-}
+
+def _dashboard_context(user):
+    """Builds real, per-user (never just per-role) data for the dashboard.
+    See job_postings.views for the ownership-scoped queries this reuses the same pattern from."""
+    if user.role == User.Role.HIRING_MANAGER:
+        # Ownership boundary: only this Hiring Manager's own requests.
+        my_requests = VacancyRequest.objects.filter(raised_by=user)
+        return {
+            "recent_requests": my_requests[:5],
+            "pending_requests": my_requests.filter(status=VacancyRequest.Status.PENDING),
+            "stats": [
+                {"label": "Pending", "value": my_requests.filter(status=VacancyRequest.Status.PENDING).count()},
+                {"label": "Posted", "value": my_requests.filter(status=VacancyRequest.Status.POSTED).count()},
+            ],
+        }
+
+    if user.role == User.Role.HR_RECRUITER:
+        # Ownership boundary: only this recruiter's own postings.
+        my_postings = JobPosting.objects.filter(posted_by=user)
+        pending_queue = VacancyRequest.objects.filter(status=VacancyRequest.Status.PENDING)
+        return {
+            "recent_postings": my_postings[:5],
+            "pending_queue": pending_queue,
+            "stats": [
+                {"label": "Draft", "value": my_postings.filter(status=JobPosting.Status.DRAFT).count()},
+                {"label": "Published", "value": my_postings.filter(status=JobPosting.Status.PUBLISHED).count()},
+            ],
+        }
+
+    if user.role == User.Role.INTERVIEWER:
+        postings_with_applicants = (
+            JobPosting.objects.filter(applications__status__in=[Application.Status.APPLIED, Application.Status.SHORTLISTED])
+            .distinct()
+            .prefetch_related("applications__candidate")
+        )
+        pending_applicants = Application.objects.filter(status=Application.Status.APPLIED).select_related("candidate", "job_posting")
+        return {
+            "postings_with_applicants": postings_with_applicants[:5],
+            "pending_applicants": pending_applicants,
+            "stats": [
+                {"label": "Postings with applicants", "value": postings_with_applicants.count()},
+                {"label": "Awaiting review", "value": pending_applicants.count()},
+            ],
+        }
+
+    if user.role == User.Role.CANDIDATE:
+        # Ownership boundary: only this candidate's own applications.
+        my_applications = Application.objects.filter(candidate=user).select_related("job_posting")
+        return {
+            "recent_jobs": JobPosting.objects.filter(status=JobPosting.Status.PUBLISHED)[:5],
+            "recent_applications": my_applications[:5],
+            "stats": [
+                {"label": "Applications submitted", "value": my_applications.count()},
+            ],
+        }
+
+    if user.role == User.Role.HR_ADMIN:
+        return {
+            "recent_users": User.objects.exclude(role=User.Role.CANDIDATE).order_by("-date_joined")[:5],
+            "stats": [
+                {"label": "Company user accounts", "value": User.objects.exclude(role=User.Role.CANDIDATE).count()},
+            ],
+        }
+
+    # HR Manager, Onboarding Coordinator: no workflow exists for them yet in this
+    # module - an honest placeholder, no fake numbers, no dead buttons.
+    return {}
 
 
 def portal_select_view(request):
@@ -165,8 +196,8 @@ def google_login_stub(request):
 
 @login_required
 def dashboard_view(request):
-    cards = ROLE_CARDS.get(request.user.role, [])
-    return render(request, 'accounts/dashboard.html', {'cards': cards})
+    context = _dashboard_context(request.user)
+    return render(request, 'accounts/dashboard.html', context)
 
 
 def logout_view(request):

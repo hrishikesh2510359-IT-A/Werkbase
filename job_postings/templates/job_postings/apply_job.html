@@ -1,0 +1,39 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Apply</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="wide-page">
+        <div class="wide-card">
+            <h1>Apply — {{ posting.job_title }}</h1>
+
+            {% if form.non_field_errors %}
+                <div class="error-banner">{{ form.non_field_errors.0 }}</div>
+            {% endif %}
+
+            <!-- Security boundary: candidate is set server-side from request.user in the view,
+                 never taken from the form; duplicate applications are blocked in the view too. -->
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="field">
+                    <label for="id_resume">Resume</label>
+                    {{ form.resume }}
+                    {% if form.resume.errors %}<div class="notice-banner">{{ form.resume.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="field">
+                    <label for="id_cover_note">Cover Note (optional)</label>
+                    {{ form.cover_note }}
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Submit Application</button>
+                    <a href="{% url 'job_detail' posting.pk %}" class="btn-secondary" style="text-decoration:none; text-align:center;">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

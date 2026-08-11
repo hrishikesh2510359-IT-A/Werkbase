@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Raise Vacancy Request</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="wide-page">
+        <div class="wide-card">
+            <h1>{% if editing %}Edit Vacancy Request{% else %}Raise Vacancy Request{% endif %}</h1>
+
+            {% if form.non_field_errors %}
+                <div class="error-banner">{{ form.non_field_errors.0 }}</div>
+            {% endif %}
+
+            <!-- Security boundary: this page is role-guarded to Hiring Manager only
+                 (role_required decorator); raised_by is set server-side, not from the form. -->
+            <form method="post">
+                {% csrf_token %}
+                <div class="field">
+                    <label for="id_job_title">Job Title</label>
+                    {{ form.job_title }}
+                </div>
+                <div class="form-row">
+                    <div class="field">
+                        <label for="id_department">Department</label>
+                        {{ form.department }}
+                    </div>
+                    <div class="field">
+                        <label for="id_num_openings">No. of Openings</label>
+                        {{ form.num_openings }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="id_description">Need / Justification</label>
+                    {{ form.description }}
+                </div>
+                <div class="field">
+                    <label for="id_priority">Priority</label>
+                    {{ form.priority }}
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">{% if editing %}Save Changes{% else %}Submit Request{% endif %}</button>
+                    <a href="{% url 'my_vacancy_requests' %}" class="btn-secondary" style="text-decoration:none; text-align:center;">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

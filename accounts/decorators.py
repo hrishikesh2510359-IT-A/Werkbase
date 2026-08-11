@@ -6,13 +6,19 @@ from django.core.exceptions import PermissionDenied
 from .models import User
 
 
-def hr_admin_required(view_func):
-    """Security boundary: only a logged-in HR Admin may pass. Combined with
-    login_required so anonymous users are redirected to login rather than 403'd."""
-    @wraps(view_func)
-    @login_required
-    def wrapper(request, *args, **kwargs):
-        if request.user.role != User.Role.HR_ADMIN:
-            raise PermissionDenied("Only HR Admin can access this page.")
-        return view_func(request, *args, **kwargs)
-    return wrapper
+def role_required(*allowed_roles):
+    """Security boundary: only a logged-in user whose role is in allowed_roles
+    may pass. Combined with login_required so anonymous users are redirected
+    to login rather than 403'd. Reused across every role-restricted view."""
+    def decorator(view_func):
+        @wraps(view_func)
+        @login_required
+        def wrapper(request, *args, **kwargs):
+            if request.user.role not in allowed_roles:
+                raise PermissionDenied(f"This page requires one of: {', '.join(allowed_roles)}.")
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
+hr_admin_required = role_required(User.Role.HR_ADMIN)

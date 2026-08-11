@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Interviewer Dashboard</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="dash-page">
+        <div class="dash-header">
+            <div class="dash-welcome">
+                <h1>Applicants by Job Posting</h1>
+            </div>
+            <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notice-strip">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        {% for posting in postings %}
+            <div class="wide-card" style="margin-bottom:1.25rem;">
+                <h1 style="font-size:1.05rem;">{{ posting.job_title }} <span class="record-meta">({{ posting.get_department_display }})</span></h1>
+                <div class="record-list">
+                    {% for app in posting.applications.all %}
+                        {% if app.status == 'APPLIED' or app.status == 'SHORTLISTED' %}
+                            <div class="record-row">
+                                <div>
+                                    <p class="record-title">{{ app.candidate.full_name }}</p>
+                                    <p class="record-meta">Applied {{ app.applied_at|date:"M j, Y" }}</p>
+                                </div>
+                                <div class="record-actions">
+                                    <span class="status-badge status-{{ app.status|lower }}">{{ app.get_status_display }}</span>
+                                    <form method="post" action="{% url 'schedule_interview' app.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-small">Schedule Interview</button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% empty %}
+            <p class="empty-state">No job postings have applicants yet.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>

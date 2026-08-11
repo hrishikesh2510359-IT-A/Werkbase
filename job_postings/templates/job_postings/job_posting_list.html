@@ -1,0 +1,67 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Job Postings</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="dash-page">
+        <div class="dash-header">
+            <div class="dash-welcome">
+                <h1>Job Postings</h1>
+            </div>
+            <div>
+                <a href="{% url 'pending_vacancies' %}" class="btn-logout" style="margin-right:0.5rem;">Pending Vacancies</a>
+                <a href="{% url 'create_job_posting' %}" class="btn-logout" style="margin-right:0.5rem;">New Posting</a>
+                <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
+            </div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notice-strip">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="record-list">
+            {% for posting in postings %}
+                <div class="record-row">
+                    <div>
+                        <p class="record-title">{{ posting.job_title }}</p>
+                        <p class="record-meta">
+                            {{ posting.get_department_display }} · {{ posting.get_employment_type_display }} · {{ posting.location }}
+                            · <span class="status-badge status-{{ posting.status|lower }}">{{ posting.get_status_display }}</span>
+                        </p>
+                    </div>
+                    <div class="record-actions">
+                        <a href="{% url 'edit_job_posting' posting.pk %}" class="btn-small">Edit</a>
+                        {% if posting.status == 'DRAFT' %}
+                            <form method="post" action="{% url 'transition_job_posting' posting.pk 'publish' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-small">Publish</button>
+                            </form>
+                        {% elif posting.status == 'PUBLISHED' %}
+                            <form method="post" action="{% url 'transition_job_posting' posting.pk 'close' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-small">Close</button>
+                            </form>
+                        {% endif %}
+                        <form method="post" action="{% url 'duplicate_job_posting' posting.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-small">Duplicate</button>
+                        </form>
+                        <form method="post" action="{% url 'delete_job_posting' posting.pk %}" onsubmit="return confirm('Delete this job posting?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-small">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="empty-state">No job postings yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

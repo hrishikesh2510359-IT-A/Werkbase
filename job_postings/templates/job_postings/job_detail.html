@@ -1,0 +1,53 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — {{ posting.job_title }}</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="wide-page">
+        <div class="wide-card">
+            <h1>{{ posting.job_title }}</h1>
+            <p class="record-meta">{{ posting.get_department_display }} · {{ posting.get_employment_type_display }} · {{ posting.get_work_mode_display }} · {{ posting.location }}</p>
+
+            {% if already_applied %}
+                <div class="notice-strip">You've already applied to this job.</div>
+            {% else %}
+                <div class="form-actions">
+                    <a href="{% url 'apply_job' posting.pk %}" class="btn-primary" style="width:auto; padding:0.7rem 1.5rem; text-decoration:none;">Apply Now</a>
+                </div>
+            {% endif %}
+
+            <div class="form-section-title">Details</div>
+            <p><strong>Openings:</strong> {{ posting.num_openings }}</p>
+            <p><strong>Minimum Experience:</strong> {{ posting.min_experience_years }} year{{ posting.min_experience_years|pluralize }}</p>
+            <p><strong>Education Level:</strong> {{ posting.get_education_level_display }}</p>
+            {% if posting.salary_range %}<p><strong>Salary Range:</strong> {{ posting.salary_range }}</p>{% endif %}
+            {% if posting.closing_date %}<p><strong>Closing Date:</strong> {{ posting.closing_date }}</p>{% endif %}
+
+            <div class="form-section-title">Required Skills</div>
+            <div class="tag-input-box" style="border:none; padding:0;">
+                {% for skill in posting.required_skills.all %}<span class="tag-chip">{{ skill.name }}</span>{% empty %}<span class="empty-state">None specified</span>{% endfor %}
+            </div>
+
+            {% if posting.nice_to_have_skills.all %}
+                <div class="form-section-title">Nice-to-have Skills</div>
+                <div class="tag-input-box" style="border:none; padding:0;">
+                    {% for skill in posting.nice_to_have_skills.all %}<span class="tag-chip">{{ skill.name }}</span>{% endfor %}
+                </div>
+            {% endif %}
+
+            {% if posting.key_responsibilities %}
+                <div class="form-section-title">Key Responsibilities</div>
+                <p style="white-space:pre-line;">{{ posting.key_responsibilities }}</p>
+            {% endif %}
+
+            <div class="form-actions">
+                <a href="{% url 'browse_jobs' %}" class="btn-secondary" style="text-decoration:none; text-align:center;">Back to Listings</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

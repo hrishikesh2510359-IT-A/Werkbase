@@ -265,3 +265,200 @@ body {
     font-size: 0.8rem;
     margin-top: 2rem;
 }
+
+/* Job Posting module — additive only, reuses existing variables/patterns above */
+
+.wide-page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+}
+
+.wide-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-accent-light);
+    border-radius: 8px;
+    padding: 2rem;
+}
+
+.wide-card h1 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0 0 1.25rem;
+    color: var(--color-text);
+}
+
+.form-section-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin: 1.5rem 0 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-accent-light);
+}
+
+.form-section-title:first-of-type {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 560px) {
+    .form-row { grid-template-columns: 1fr; }
+}
+
+.btn-secondary {
+    padding: 0.7rem 1.2rem;
+    background: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-secondary:hover { background: rgba(44, 95, 124, 0.08); }
+
+.form-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.tag-input-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.5rem;
+    border: 1px solid var(--color-accent-light);
+    border-radius: 6px;
+    background: var(--color-surface);
+}
+
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--color-accent-light);
+    color: var(--color-primary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+}
+
+.tag-chip button {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0;
+}
+
+.tag-input-box input[type="text"] {
+    border: none;
+    outline: none;
+    flex: 1;
+    min-width: 120px;
+    font-size: 0.9rem;
+    padding: 0.2rem;
+}
+
+.status-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.status-badge.status-draft { background: var(--color-accent-light); color: var(--color-primary); }
+.status-badge.status-published { background: var(--color-accent); color: #fff; }
+.status-badge.status-closed { background: var(--color-text-muted); color: #fff; }
+.status-badge.status-pending { background: var(--color-accent-light); color: var(--color-primary); }
+.status-badge.status-posted { background: var(--color-accent); color: #fff; }
+.status-badge.status-applied { background: var(--color-accent-light); color: var(--color-primary); }
+.status-badge.status-shortlisted { background: var(--color-accent); color: #fff; }
+.status-badge.status-rejected { background: var(--color-text-muted); color: #fff; }
+
+.record-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.record-row {
+    background: var(--color-surface);
+    border: 1px solid var(--color-accent-light);
+    border-left: 3px solid var(--color-accent);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.record-row .record-title {
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0 0 0.2rem;
+}
+
+.record-row .record-meta {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+.record-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.record-actions form { display: inline; }
+
+.btn-small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--color-accent-light);
+    background: var(--color-surface);
+    color: var(--color-primary);
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-small:hover { background: var(--color-accent-light); color: #fff; }
+
+.empty-state {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    padding: 2rem 0;
+}
+
+.notice-strip {
+    background: rgba(107, 124, 79, 0.1);
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent-light);
+    border-radius: 6px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}

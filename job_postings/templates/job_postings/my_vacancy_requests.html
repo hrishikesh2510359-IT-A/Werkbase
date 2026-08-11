@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — My Vacancy Requests</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="dash-page">
+        <div class="dash-header">
+            <div class="dash-welcome">
+                <h1>My Vacancy Requests</h1>
+            </div>
+            <div>
+                <a href="{% url 'raise_vacancy' %}" class="btn-logout" style="margin-right:0.5rem;">Raise New Request</a>
+                <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
+            </div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notice-strip">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="record-list">
+            {% for req in requests %}
+                <div class="record-row">
+                    <div>
+                        <p class="record-title">{{ req.job_title }}</p>
+                        <p class="record-meta">{{ req.get_department_display }} · {{ req.num_openings }} opening{{ req.num_openings|pluralize }} · Priority: {{ req.get_priority_display }}</p>
+                    </div>
+                    <div class="record-actions">
+                        <span class="status-badge status-{{ req.status|lower }}">{{ req.get_status_display }}</span>
+                        {% if req.status == 'PENDING' %}
+                            <a href="{% url 'edit_vacancy_request' req.pk %}" class="btn-small">Edit</a>
+                            <form method="post" action="{% url 'delete_vacancy_request' req.pk %}" onsubmit="return confirm('Delete this vacancy request?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-small">Delete</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            {% empty %}
+                <p class="empty-state">You haven't raised any vacancy requests yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

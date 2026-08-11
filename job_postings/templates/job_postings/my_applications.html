@@ -1,0 +1,42 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — My Applications</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="dash-page">
+        <div class="dash-header">
+            <div class="dash-welcome">
+                <h1>My Applications</h1>
+            </div>
+            <div>
+                <a href="{% url 'browse_jobs' %}" class="btn-logout" style="margin-right:0.5rem;">Browse Jobs</a>
+                <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
+            </div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notice-strip">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="record-list">
+            {% for app in applications %}
+                <div class="record-row">
+                    <div>
+                        <p class="record-title">{{ app.job_posting.job_title }}</p>
+                        <p class="record-meta">Applied {{ app.applied_at|date:"M j, Y" }}</p>
+                    </div>
+                    <span class="status-badge status-{{ app.status|lower }}">{{ app.get_status_display }}</span>
+                </div>
+            {% empty %}
+                <p class="empty-state">You haven't applied to any jobs yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
