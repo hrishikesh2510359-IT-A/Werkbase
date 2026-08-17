@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — My Profile</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="wide-page">
+        <div class="wide-card">
+            <h1>My Profile</h1>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="notice-strip">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="field">
+                <label>Resume on File</label>
+                {% if profile.resume %}
+                    <p style="margin:0;"><a href="{{ profile.resume.url }}" style="color:var(--color-primary);">{{ profile.resume.name|slice:"-40:" }}</a></p>
+                {% else %}
+                    <p class="empty-state" style="padding:0.25rem 0;">No resume on file.</p>
+                {% endif %}
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                {% include "candidates/_profile_fields.html" %}
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                    <a href="{% url 'dashboard' %}" class="btn-secondary" style="text-decoration:none; text-align:center;">Back to Dashboard</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

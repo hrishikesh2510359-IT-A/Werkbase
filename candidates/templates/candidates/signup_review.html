@@ -1,0 +1,27 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Review Your Profile</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="wide-page">
+        <div class="wide-card">
+            <h1>Review Your Profile</h1>
+            <div class="notice-strip">
+                We pulled this from your resume where we could confidently tell — please check it over and fix anything before you finish signing up. Blank fields just mean we weren't sure; fill in what applies.
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                {% include "candidates/_profile_fields.html" %}
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Finish Sign Up</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

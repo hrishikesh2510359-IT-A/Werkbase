@@ -1,0 +1,18 @@
+Email				Role
+
+hiring.manager@werkbase.com	Hiring Manager
+recruiter@werkbase.com		HR Recruiter
+interviewer@werkbase.com	Interviewer
+hr.manager@werkbase.com		HR Manager
+onboarding@werkbase.com		Onboarding Coordinator
+admin@werkbase.com		HR Admin
+candidate@werkbase.com		Candidate
+
+
+Password - Test@1234
+
+
+BUGS:
+
+1. Posting of job need to be more detailed, with all roles and responsibilities
+2. Resume upload parsing not working as intended

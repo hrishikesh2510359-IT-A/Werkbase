@@ -8,11 +8,16 @@ from .models import (
     EducationLevel,
     EmploymentType,
     JobPosting,
+    NOTICE_PERIOD_CHOICES,
     Priority,
+    REFERRAL_SOURCE_CHOICES,
     Skill,
+    SOFT_SKILL_CHOICES,
     VacancyRequest,
     WorkMode,
 )
+
+YES_NO_CHOICES = [("YES", "Yes"), ("NO", "No")]
 
 
 class VacancyRequestForm(forms.Form):
@@ -91,5 +96,49 @@ class JobPostingForm(forms.Form):
 
 
 class ApplicationForm(forms.Form):
-    resume = forms.FileField()
-    cover_note = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 4}))
+    # Optional: reuses the candidate's profile resume by default (see apply_job_view) -
+    # the candidate never has to re-upload unless they want to for this specific job.
+    resume = forms.FileField(required=False, help_text="Leave blank to use the resume on your profile.")
+
+    # Short, capped-length and job-specific only - education/experience/skills are
+    # already on file and never re-asked here.
+    sop_why_role = forms.CharField(
+        label="Why this role?", max_length=400, widget=forms.Textarea(attrs={"rows": 3, "maxlength": 400})
+    )
+    sop_why_company = forms.CharField(
+        label="Why this company?", max_length=400, widget=forms.Textarea(attrs={"rows": 3, "maxlength": 400})
+    )
+    expected_salary = forms.IntegerField(min_value=0, required=False)
+    soft_skills = forms.MultipleChoiceField(
+        label="Top 3 Soft Skills", choices=SOFT_SKILL_CHOICES, widget=forms.CheckboxSelectMultiple, required=False
+    )
+
+    # Standard ATS knockout/metadata questions - structured (Yes/No, dropdown, URL),
+    # never open-ended.
+    work_authorized = forms.ChoiceField(
+        label="Are you legally authorized to work in this country?", choices=YES_NO_CHOICES, widget=forms.RadioSelect
+    )
+    requires_sponsorship = forms.ChoiceField(
+        label="Will you now or in the future require visa sponsorship?", choices=YES_NO_CHOICES, widget=forms.RadioSelect
+    )
+    notice_period = forms.ChoiceField(label="Notice Period", choices=NOTICE_PERIOD_CHOICES)
+    # Only asked at all for non-remote postings - see __init__.
+    willing_to_relocate = forms.ChoiceField(
+        label="Are you willing to relocate for this role?", choices=YES_NO_CHOICES, widget=forms.RadioSelect, required=False
+    )
+    linkedin_url = forms.URLField(label="LinkedIn URL", required=False)
+    portfolio_url = forms.URLField(label="Portfolio / GitHub URL", required=False)
+    referral_source = forms.ChoiceField(label="How did you hear about this opening?", choices=REFERRAL_SOURCE_CHOICES)
+    referred_by = forms.CharField(label="Referred by (if any)", max_length=150, required=False)
+
+    def __init__(self, *args, posting=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # A remote posting makes "willing to relocate" meaningless - don't ask it.
+        if posting is not None and posting.work_mode == WorkMode.REMOTE:
+            del self.fields["willing_to_relocate"]
+
+    def clean_soft_skills(self):
+        selected = self.cleaned_data["soft_skills"]
+        if len(selected) > 3:
+            raise forms.ValidationError("Pick at most 3 soft skills.")
+        return selected

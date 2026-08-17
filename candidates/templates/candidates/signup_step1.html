@@ -17,8 +17,8 @@
             {% endif %}
 
             <!-- Security boundary: no role field on this form. Every account
-                 created here is a CANDIDATE, enforced server-side in the view. -->
-            <form method="post">
+                 created through this flow is a CANDIDATE, enforced server-side. -->
+            <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="field">
                     <label for="id_full_name">Full Name</label>
@@ -31,6 +31,12 @@
                     {% if form.email.errors %}<div class="notice-banner">{{ form.email.errors.0 }}</div>{% endif %}
                 </div>
                 <div class="field">
+                    <label for="id_resume">Resume</label>
+                    {{ form.resume }}
+                    <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.3rem 0 0;">{{ form.resume.help_text }}</p>
+                    {% if form.resume.errors %}<div class="notice-banner">{{ form.resume.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="field">
                     <label for="id_password1">Password</label>
                     {{ form.password1 }}
                     {% if form.password1.errors %}<div class="notice-banner">{{ form.password1.errors.0 }}</div>{% endif %}
@@ -40,7 +46,7 @@
                     {{ form.password2 }}
                     {% if form.password2.errors %}<div class="error-banner">{{ form.password2.errors.0 }}</div>{% endif %}
                 </div>
-                <button type="submit" class="btn-primary">Sign Up</button>
+                <button type="submit" class="btn-primary">Continue</button>
             </form>
 
             <div class="footer-link">

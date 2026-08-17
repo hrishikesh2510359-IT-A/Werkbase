@@ -133,10 +133,42 @@ class JobPosting(models.Model):
         return f"{self.job_title} ({self.get_status_display()})"
 
 
+SOFT_SKILL_CHOICES = [
+    ("COMMUNICATION", "Communication"),
+    ("TEAMWORK", "Teamwork"),
+    ("PROBLEM_SOLVING", "Problem Solving"),
+    ("LEADERSHIP", "Leadership"),
+    ("ADAPTABILITY", "Adaptability"),
+    ("TIME_MANAGEMENT", "Time Management"),
+    ("CRITICAL_THINKING", "Critical Thinking"),
+    ("CREATIVITY", "Creativity"),
+    ("WORK_ETHIC", "Work Ethic"),
+    ("ATTENTION_TO_DETAIL", "Attention to Detail"),
+]
+
+NOTICE_PERIOD_CHOICES = [
+    ("IMMEDIATE", "Immediate"),
+    ("TWO_WEEKS", "2 Weeks"),
+    ("ONE_MONTH", "1 Month"),
+    ("TWO_MONTHS", "2 Months"),
+    ("THREE_PLUS_MONTHS", "3+ Months"),
+]
+
+REFERRAL_SOURCE_CHOICES = [
+    ("LINKEDIN", "LinkedIn"),
+    ("COMPANY_WEBSITE", "Company Website"),
+    ("EMPLOYEE_REFERRAL", "Employee Referral"),
+    ("CAMPUS", "Campus"),
+    ("OTHER", "Other"),
+]
+
+
 class Application(models.Model):
     class Status(models.TextChoices):
         APPLIED = "APPLIED", "Applied"
         SHORTLISTED = "SHORTLISTED", "Shortlisted"
+        INTERVIEWED = "INTERVIEWED", "Interviewed"
+        SELECTED = "SELECTED", "Selected"
         REJECTED = "REJECTED", "Rejected"
 
     job_posting = models.ForeignKey(JobPosting, on_delete=models.CASCADE, related_name="applications")
@@ -149,6 +181,27 @@ class Application(models.Model):
 
     resume = models.FileField(upload_to="resumes/%Y/%m/")
     cover_note = models.TextField(blank=True)
+
+    # Job-specific, short and structured on purpose - profile data (education,
+    # experience, skills) is never re-asked here, it's already on CandidateProfile.
+    sop_why_role = models.CharField(max_length=600, blank=True)
+    sop_why_company = models.CharField(max_length=600, blank=True)
+    expected_salary = models.PositiveIntegerField(null=True, blank=True)
+    # Fixed predefined list, never free text - see SOFT_SKILL_CHOICES above.
+    soft_skills = models.JSONField(default=list, blank=True)
+
+    # Standard ATS knockout/metadata questions (Greenhouse/Lever-style) - all
+    # structured (Yes/No, dropdown, URL), nothing open-ended.
+    work_authorized = models.BooleanField(null=True, blank=True)
+    requires_sponsorship = models.BooleanField(null=True, blank=True)
+    notice_period = models.CharField(max_length=20, choices=NOTICE_PERIOD_CHOICES, blank=True)
+    # Only meaningful (and only asked in the form) for non-remote postings.
+    willing_to_relocate = models.BooleanField(null=True, blank=True)
+    linkedin_url = models.URLField(blank=True)
+    portfolio_url = models.URLField(blank=True)
+    referral_source = models.CharField(max_length=20, choices=REFERRAL_SOURCE_CHOICES, blank=True)
+    referred_by = models.CharField(max_length=150, blank=True)
+
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.APPLIED)
     applied_at = models.DateTimeField(auto_now_add=True)
 

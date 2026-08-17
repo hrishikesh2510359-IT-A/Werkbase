@@ -6,7 +6,7 @@ from django.shortcuts import redirect, render
 from job_postings.models import Application, JobPosting, VacancyRequest
 
 from .decorators import hr_admin_required
-from .forms import CandidateSignupForm, CompanyUserCreateForm, LoginForm
+from .forms import CompanyUserCreateForm, LoginForm
 from .models import User
 
 GOOGLE_DEMO_EMAIL = "google.demo@werkbase.com"
@@ -109,29 +109,6 @@ def candidate_login_view(request):
         form = LoginForm()
 
     return render(request, 'accounts/candidate_login.html', {'form': form, 'error': error})
-
-
-def candidate_signup_view(request):
-    if request.user.is_authenticated:
-        return redirect('dashboard')
-
-    if request.method == 'POST':
-        form = CandidateSignupForm(request.POST)
-        if form.is_valid():
-            # Security boundary: role is never read from the submitted form.
-            # Public signup can only ever create a CANDIDATE account.
-            user = User.objects.create_user(
-                email=form.cleaned_data['email'],
-                password=form.cleaned_data['password1'],
-                full_name=form.cleaned_data['full_name'],
-                role=User.Role.CANDIDATE,
-            )
-            login(request, user)
-            return redirect('dashboard')
-    else:
-        form = CandidateSignupForm()
-
-    return render(request, 'accounts/candidate_signup.html', {'form': form})
 
 
 def company_login_view(request):

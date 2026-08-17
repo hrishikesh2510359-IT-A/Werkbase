@@ -1,0 +1,138 @@
+{% load static %}
+<div class="field">
+    <label for="id_phone">Phone</label>
+    {{ profile_form.phone }}
+</div>
+
+<div class="field">
+    <label>Skills</label>
+    <div class="tag-input-box" data-tag-input data-hidden-field="id_skills">
+        <input type="text" list="master-skills" placeholder="Type a skill and press Enter">
+    </div>
+    <datalist id="master-skills">
+        {% for name in master_skill_names %}<option value="{{ name }}">{% endfor %}
+    </datalist>
+    <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.3rem 0 0;">Only skills already in our master list will be saved.</p>
+    {{ profile_form.skills }}
+</div>
+
+<div class="form-section-title">Education</div>
+{{ edu_formset.management_form }}
+{% for edu_form in edu_formset %}
+    <div class="wide-card" style="margin-bottom:0.75rem; padding:1rem;">
+        <div class="form-row">
+            <div class="field">
+                <label>Institute</label>
+                {{ edu_form.institute_name }}
+            </div>
+            <div class="field">
+                <label>Degree</label>
+                {{ edu_form.degree }}
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="field">
+                <label>Field of Study</label>
+                {{ edu_form.field_of_study }}
+            </div>
+            <div class="field">
+                <label>Grade</label>
+                {{ edu_form.grade }}
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="field">
+                <label>Start Year</label>
+                {{ edu_form.start_year }}
+            </div>
+            <div class="field">
+                <label>End Year</label>
+                {{ edu_form.end_year }}
+            </div>
+        </div>
+        {% if edu_form.DELETE %}
+            <label style="font-size:0.8rem; color:var(--color-text-muted);">{{ edu_form.DELETE }} Remove this entry</label>
+        {% endif %}
+    </div>
+{% endfor %}
+
+<div class="form-section-title">Experience</div>
+{{ exp_formset.management_form }}
+{% for exp_form in exp_formset %}
+    <div class="wide-card" style="margin-bottom:0.75rem; padding:1rem;">
+        <div class="form-row">
+            <div class="field">
+                <label>Company</label>
+                {{ exp_form.company_name }}
+            </div>
+            <div class="field">
+                <label>Job Title</label>
+                {{ exp_form.job_title }}
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="field">
+                <label>Start Date</label>
+                {{ exp_form.start_date }}
+            </div>
+            <div class="field">
+                <label>End Date</label>
+                {{ exp_form.end_date }}
+            </div>
+        </div>
+        <div class="field">
+            <label>Description</label>
+            {{ exp_form.description }}
+        </div>
+        {% if exp_form.DELETE %}
+            <label style="font-size:0.8rem; color:var(--color-text-muted);">{{ exp_form.DELETE }} Remove this entry</label>
+        {% endif %}
+    </div>
+{% endfor %}
+
+<script>
+    // Same lightweight tag-input widget used for job posting skills - no external library.
+    document.querySelectorAll('[data-tag-input]').forEach(function (box) {
+        var hidden = document.getElementById(box.dataset.hiddenField);
+        var textInput = box.querySelector('input[type="text"]');
+        var tags = hidden.value ? hidden.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean) : [];
+
+        function render() {
+            box.querySelectorAll('.tag-chip').forEach(function (chip) { chip.remove(); });
+            tags.forEach(function (tag, index) {
+                var chip = document.createElement('span');
+                chip.className = 'tag-chip';
+                var label = document.createElement('span');
+                label.textContent = tag;
+                var remove = document.createElement('button');
+                remove.type = 'button';
+                remove.textContent = '×';
+                remove.addEventListener('click', function () {
+                    tags.splice(index, 1);
+                    render();
+                });
+                chip.appendChild(label);
+                chip.appendChild(remove);
+                box.insertBefore(chip, textInput);
+            });
+            hidden.value = tags.join(',');
+        }
+
+        textInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                var value = textInput.value.trim().replace(/,$/, '');
+                if (value && tags.indexOf(value) === -1) {
+                    tags.push(value);
+                    render();
+                }
+                textInput.value = '';
+            } else if (e.key === 'Backspace' && !textInput.value && tags.length) {
+                tags.pop();
+                render();
+            }
+        });
+
+        render();
+    });
+</script>

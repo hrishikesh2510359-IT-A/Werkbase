@@ -5,9 +5,9 @@ from . import views
 urlpatterns = [
     path('', views.portal_select_view, name='portal_select'),
 
-    # Candidate portal — the only public signup path.
+    # Candidate portal — login only; signup now lives in the candidates app
+    # (candidates.urls, mounted at 'candidate/') since it's a full profile flow.
     path('candidate/login/', views.candidate_login_view, name='candidate_login'),
-    path('candidate/signup/', views.candidate_signup_view, name='candidate_signup'),
 
     # Company portal — login only, no public signup link.
     path('company/login/', views.company_login_view, name='company_login'),

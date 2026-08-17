@@ -3,17 +3,44 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Werkbase</title>
+    <title>Werkbase — Recruitment Revamped</title>
     <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
 </head>
 <body>
-    <div class="auth-page">
-        <div class="auth-card">
-            <div class="logo">Werkbase</div>
-            <h1>Choose how you'd like to sign in</h1>
-            <a href="{% url 'candidate_login' %}" class="btn-primary" style="display:block; text-align:center; text-decoration:none; margin-bottom:0.75rem;">I'm a Candidate</a>
-            <a href="{% url 'company_login' %}" class="btn-google" style="text-decoration:none;">Company Login</a>
+    <nav class="landing-nav">
+        <div class="logo">Werkbase</div>
+    </nav>
+
+    <header class="landing-hero">
+        <h1 class="tagline">Recruitment <span>Revamped</span></h1>
+        <p>Werkbase brings vacancy requests, job postings, candidate applications, and interviews into one internal platform — built for how your HR team actually works.</p>
+        <div class="landing-cta">
+            <a href="{% url 'candidate_login' %}" class="btn-primary">I'm a Candidate</a>
+            <a href="{% url 'company_login' %}" class="btn-secondary" style="text-decoration:none;">Employee Login</a>
         </div>
-    </div>
+    </header>
+
+    <section class="landing-features">
+        <div class="landing-feature-card">
+            <p class="feature-title">Raise &amp; Post</p>
+            <p class="feature-desc">Hiring Managers raise vacancy requests; HR Recruiters turn them into live job postings.</p>
+        </div>
+        <div class="landing-feature-card">
+            <p class="feature-title">Apply &amp; Track</p>
+            <p class="feature-desc">Candidates browse open roles, apply with a resume, and track their application status.</p>
+        </div>
+        <div class="landing-feature-card">
+            <p class="feature-title">Interview</p>
+            <p class="feature-desc">Interviewers see applicants per posting and schedule interviews directly.</p>
+        </div>
+        <div class="landing-feature-card">
+            <p class="feature-title">Manage Access</p>
+            <p class="feature-desc">HR Admins control every company account from a single, secure admin view.</p>
+        </div>
+    </section>
+
+    <footer class="landing-footer">
+        &copy; Werkbase — internal recruitment platform
+    </footer>
 </body>
 </html>

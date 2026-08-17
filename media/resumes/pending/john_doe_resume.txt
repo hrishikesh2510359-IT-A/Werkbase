@@ -1,0 +1,18 @@
+John Doe
+john.doe@example.com
++91 9876543210
+
+Education
+B.Tech in Computer Science
+ABC University
+2016 - 2020
+CGPA: 8.7
+
+Experience
+Software Engineer
+Acme Technologies
+Jan 2021 - Present
+Worked on backend services.
+
+Skills
+Python, Django, PostgreSQL

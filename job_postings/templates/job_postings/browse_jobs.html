@@ -24,6 +24,27 @@
             {% endfor %}
         {% endif %}
 
+        <form method="get" class="form-row" style="margin-bottom:1.5rem; align-items:end;">
+            <div class="field" style="margin-bottom:0;">
+                <label for="id_q">Search</label>
+                <input type="text" id="id_q" name="q" value="{{ query }}" placeholder="Title or keyword">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+                <label for="id_department">Department</label>
+                <select id="id_department" name="department">
+                    <option value="">All Departments</option>
+                    {% for value, label in departments %}
+                        <option value="{{ value }}" {% if value == selected_department %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="field" style="margin-bottom:0;">
+                <label for="id_location">Location</label>
+                <input type="text" id="id_location" name="location" value="{{ location }}" placeholder="City">
+            </div>
+            <button type="submit" class="btn-primary" style="width:auto; padding:0.6rem 1.2rem;">Search</button>
+        </form>
+
         <div class="record-list">
             {% for posting in postings %}
                 <div class="record-row">

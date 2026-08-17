@@ -1,12 +1,13 @@
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.db import IntegrityError, models
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.decorators import role_required
 from accounts.models import User
 
 from .forms import ApplicationForm, JobPostingForm, VacancyRequestForm
-from .models import Application, JobPosting, VacancyRequest
+from .models import Application, Department, JobPosting, VacancyRequest
 
 
 # ---------------------------------------------------------------------------
@@ -272,7 +273,27 @@ def delete_job_posting_view(request, pk):
 def browse_jobs_view(request):
     # Never show Draft/Closed postings to candidates.
     postings = JobPosting.objects.filter(status=JobPosting.Status.PUBLISHED)
-    return render(request, "job_postings/browse_jobs.html", {"postings": postings})
+
+    query = request.GET.get("q", "").strip()
+    department = request.GET.get("department", "").strip()
+    location = request.GET.get("location", "").strip()
+
+    if query:
+        postings = postings.filter(
+            models.Q(job_title__icontains=query) | models.Q(key_responsibilities__icontains=query)
+        )
+    if department:
+        postings = postings.filter(department=department)
+    if location:
+        postings = postings.filter(location__icontains=location)
+
+    return render(request, "job_postings/browse_jobs.html", {
+        "postings": postings,
+        "departments": Department.choices,
+        "query": query,
+        "selected_department": department,
+        "location": location,
+    })
 
 
 @role_required(User.Role.CANDIDATE)
@@ -291,21 +312,52 @@ def apply_job_view(request, pk):
         messages.info(request, "You've already applied to this job.")
         return redirect("job_detail", pk=posting.pk)
 
-    if request.method == "POST":
-        form = ApplicationForm(request.POST, request.FILES)
-        if form.is_valid():
-            Application.objects.create(
-                job_posting=posting,
-                candidate=request.user,  # never taken from the form
-                resume=form.cleaned_data["resume"],
-                cover_note=form.cleaned_data["cover_note"],
-            )
-            messages.success(request, f"Application submitted for {posting.job_title}.")
-            return redirect("my_applications")
-    else:
-        form = ApplicationForm()
+    profile_resume = getattr(getattr(request.user, "candidate_profile", None), "resume", None)
 
-    return render(request, "job_postings/apply_job.html", {"form": form, "posting": posting})
+    if request.method == "POST":
+        form = ApplicationForm(request.POST, request.FILES, posting=posting)
+        if form.is_valid():
+            resume = form.cleaned_data["resume"] or profile_resume
+            if not resume:
+                form.add_error("resume", "Upload a resume, or add one to your profile first.")
+            else:
+                try:
+                    Application.objects.create(
+                        job_posting=posting,
+                        candidate=request.user,  # never taken from the form
+                        resume=resume,
+                        sop_why_role=form.cleaned_data["sop_why_role"],
+                        sop_why_company=form.cleaned_data["sop_why_company"],
+                        expected_salary=form.cleaned_data["expected_salary"],
+                        soft_skills=form.cleaned_data["soft_skills"],
+                        work_authorized=form.cleaned_data["work_authorized"] == "YES",
+                        requires_sponsorship=form.cleaned_data["requires_sponsorship"] == "YES",
+                        notice_period=form.cleaned_data["notice_period"],
+                        willing_to_relocate=(
+                            form.cleaned_data.get("willing_to_relocate") == "YES"
+                            if "willing_to_relocate" in form.cleaned_data else None
+                        ),
+                        linkedin_url=form.cleaned_data["linkedin_url"],
+                        portfolio_url=form.cleaned_data["portfolio_url"],
+                        referral_source=form.cleaned_data["referral_source"],
+                        referred_by=form.cleaned_data["referred_by"],
+                    )
+                except IntegrityError:
+                    # Data consistency, enforced at the DB level (UniqueConstraint) too -
+                    # this catches a double-submit race the pre-check above can miss.
+                    messages.info(request, "You've already applied to this job.")
+                    return redirect("job_detail", pk=posting.pk)
+                messages.success(request, f"Application submitted for {posting.job_title}.")
+                return redirect("my_applications")
+    else:
+        form = ApplicationForm(posting=posting)
+
+    return render(request, "job_postings/apply_job.html", {
+        "form": form,
+        "posting": posting,
+        "has_profile_resume": bool(profile_resume),
+        "profile_resume_name": profile_resume.name.rsplit("/", 1)[-1] if profile_resume else "",
+    })
 
 
 @role_required(User.Role.CANDIDATE)
