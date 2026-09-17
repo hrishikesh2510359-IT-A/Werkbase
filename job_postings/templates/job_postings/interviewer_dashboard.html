@@ -34,10 +34,10 @@
                                 </div>
                                 <div class="record-actions">
                                     <span class="status-badge status-{{ app.status|lower }}">{{ app.get_status_display }}</span>
-                                    <form method="post" action="{% url 'schedule_interview' app.pk %}">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn-small">Schedule Interview</button>
-                                    </form>
+                                    {% if app.status == 'SHORTLISTED' %}
+                                        {# Scheduling is only offered on shortlisted applications. #}
+                                        <a href="{% url 'schedule_interview' app.pk %}" class="btn-small">Schedule Interview</a>
+                                    {% endif %}
                                 </div>
                             </div>
                         {% endif %}

@@ -391,6 +391,10 @@ body {
 .status-badge.status-applied { background: var(--color-accent-light); color: var(--color-primary); }
 .status-badge.status-shortlisted { background: var(--color-accent); color: #fff; }
 .status-badge.status-interviewed { background: var(--color-primary); color: #fff; }
+.status-badge.status-interview_scheduled { background: var(--color-primary); color: #fff; }
+.status-badge.status-scheduled { background: var(--color-primary); color: #fff; }
+.status-badge.status-completed { background: var(--color-accent); color: #fff; }
+.status-badge.status-cancelled { background: var(--color-text-muted); color: #fff; }
 .status-badge.status-selected { background: var(--color-accent); color: #fff; }
 .status-badge.status-rejected { background: var(--color-text-muted); color: #fff; }
 
@@ -597,4 +601,96 @@ body {
     font-size: 0.8rem;
     padding: 1.5rem;
     border-top: 1px solid var(--color-accent-light);
+}
+
+/* Resume screening — additive only, reuses existing variables/patterns above */
+
+.score-bar {
+    background: var(--color-accent-light);
+    border-radius: 999px;
+    height: 8px;
+    width: 140px;
+    overflow: hidden;
+}
+
+.score-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--color-primary);
+}
+
+.score-value {
+    font-weight: 700;
+    color: var(--color-text);
+    font-size: 0.95rem;
+}
+
+.tier-chip {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.tier-chip.tier-strong { background: var(--color-accent); color: #fff; }
+.tier-chip.tier-potential { background: var(--color-accent-light); color: var(--color-primary); }
+.tier-chip.tier-weak { background: var(--color-text-muted); color: #fff; }
+
+.verdict-badge {
+    display: inline-block;
+    font-size: 0.74rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--color-accent-light);
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+}
+
+.verdict-badge.verdict-pass { color: var(--color-accent); border-color: var(--color-accent); }
+.verdict-badge.verdict-fail { color: var(--color-error); border-color: var(--color-error); }
+
+.low-signal-flag {
+    display: inline-block;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--color-error);
+    background: rgba(179, 38, 30, 0.08);
+    border: 1px solid rgba(179, 38, 30, 0.25);
+    border-radius: 6px;
+    padding: 0.15rem 0.5rem;
+}
+
+.skill-chip-missing {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(179, 38, 30, 0.08);
+    color: var(--color-error);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+}
+
+.skill-chip-bonus {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+}
+
+.skill-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
 }

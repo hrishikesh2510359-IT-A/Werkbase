@@ -1,0 +1,88 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — My Interviews</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="dash-page">
+        <div class="dash-header">
+            <div class="dash-welcome">
+                <h1>My Interviews</h1>
+            </div>
+            <div class="record-actions">
+                <a href="{% url 'interviewer_dashboard' %}" class="btn-logout">Applicants</a>
+                <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
+            </div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notice-strip">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="record-actions" style="margin-bottom:1.25rem;">
+            <a href="?scope=upcoming" class="btn-small" {% if scope == 'upcoming' %}style="background:var(--color-accent-light); color:#fff;"{% endif %}>Upcoming</a>
+            <a href="?scope=today" class="btn-small" {% if scope == 'today' %}style="background:var(--color-accent-light); color:#fff;"{% endif %}>Today</a>
+            <a href="?scope=week" class="btn-small" {% if scope == 'week' %}style="background:var(--color-accent-light); color:#fff;"{% endif %}>This Week</a>
+            <a href="?scope=all" class="btn-small" {% if scope == 'all' %}style="background:var(--color-accent-light); color:#fff;"{% endif %}>All</a>
+        </div>
+
+        <div class="record-list">
+            {% for row in rows %}
+                {% with iv=row.interview %}
+                <div class="record-row">
+                    <div style="flex:1; min-width:260px;">
+                        <p class="record-title">
+                            {{ iv.application.candidate.full_name }}
+                            <span class="status-badge status-{{ iv.status|lower }}">{{ iv.get_status_display }}</span>
+                            {% if iv.is_manual_link %}
+                                <span class="verdict-badge">Manually linked</span>
+                            {% endif %}
+                        </p>
+                        <p class="record-meta">
+                            {{ iv.application.job_posting.job_title }} ·
+                            {{ iv.scheduled_at|date:"D, d M Y" }} at {{ iv.scheduled_at|time:"g:i A" }}
+                            ({{ iv.duration_minutes }} min)
+                        </p>
+                        {% if iv.status == 'COMPLETED' %}
+                            <p class="record-meta">
+                                Feedback: {{ iv.rating }}/5 · {{ iv.get_recommendation_display }}
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <div class="record-actions">
+                        {% if iv.status == 'SCHEDULED' %}
+                            {% if not iv.meet_link %}
+                                <span class="record-meta">No link</span>
+                            {% elif row.can_join %}
+                                <a href="{{ iv.meet_link }}" target="_blank" rel="noopener" class="btn-small">Join Meet</a>
+                            {% else %}
+                                <span class="record-meta">Link opens near the slot</span>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if iv.status == 'SCHEDULED' %}
+                            {% if row.can_give_feedback %}
+                                <a href="{% url 'submit_feedback' iv.pk %}" class="btn-small">Submit Feedback</a>
+                            {% endif %}
+                            <a href="{% url 'reschedule_interview' iv.pk %}" class="btn-small">Reschedule</a>
+                            <form method="post" action="{% url 'cancel_interview' iv.pk %}" onsubmit="return confirm('Cancel this interview?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-small">Cancel</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endwith %}
+            {% empty %}
+                <p class="empty-state">No interviews in this view.</p>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

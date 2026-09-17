@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Interview Feedback</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="wide-page">
+        <div class="wide-card">
+            <h1>Interview Feedback</h1>
+            <p class="record-meta">
+                {{ interview.application.candidate.full_name }} ·
+                {{ interview.application.job_posting.job_title }} ·
+                {{ interview.scheduled_at|date:"d M Y" }} at {{ interview.scheduled_at|time:"g:i A" }}
+            </p>
+
+            {% if form.non_field_errors %}
+                <div class="error-banner">{{ form.non_field_errors.0 }}</div>
+            {% endif %}
+
+            <!-- Submitting completes the interview and marks the application
+                 Interviewed. Stored against the interview for the Hiring Manager's
+                 review screen (a future module). -->
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="field">
+                        <label for="id_rating">{{ form.rating.label }}</label>
+                        {{ form.rating }}
+                        {% if form.rating.errors %}<div class="notice-banner">{{ form.rating.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="field">
+                        <label for="id_recommendation">{{ form.recommendation.label }}</label>
+                        {{ form.recommendation }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="id_feedback_comment">{{ form.feedback_comment.label }}</label>
+                    {{ form.feedback_comment }}
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary" style="width:auto; padding:0.7rem 1.5rem;">Submit Feedback</button>
+                    <a href="{% url 'my_interviews' %}" class="btn-secondary" style="text-decoration:none; text-align:center;">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,126 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Ranked Candidates</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="dash-page">
+        <div class="dash-header">
+            <div class="dash-welcome">
+                <h1>Ranked Candidates</h1>
+                <span class="role-pill">{{ posting.job_title }}</span>
+            </div>
+            <div class="record-actions">
+                {% if reveal %}
+                    <a href="{% url 'ranked_candidates' posting.pk %}" class="btn-logout">Hide identities</a>
+                {% else %}
+                    <a href="{% url 'ranked_candidates' posting.pk %}?reveal=1" class="btn-logout">Reveal identities</a>
+                {% endif %}
+                <form method="post" action="{% url 'recompute_scores' posting.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-logout">Recompute scores</button>
+                </form>
+                <a href="{% url 'job_posting_list' %}" class="btn-logout">Back to Postings</a>
+            </div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notice-strip">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        {% if job_has_no_required_skills %}
+            <div class="error-banner">
+                This posting has no required skills set, so every applicant scores 0.
+                Add required skills to the posting, then recompute.
+            </div>
+        {% endif %}
+
+        {% if not reveal %}
+            <div class="notice-strip">
+                Names are hidden for this first pass to reduce bias. Scores and skills are unaffected.
+                Identity is always shown once a candidate has been shortlisted or rejected.
+            </div>
+        {% endif %}
+
+        <div class="record-list">
+            {% for row in rows %}
+                {% with app=row.application %}
+                <div class="record-row">
+                    <div style="flex:1; min-width:260px;">
+                        <p class="record-title">
+                            {% if row.show_identity %}
+                                {{ app.candidate.full_name }}
+                            {% else %}
+                                Candidate #{{ app.id }}
+                            {% endif %}
+                            {% if app.fit_tier %}
+                                <span class="tier-chip tier-{{ app.fit_tier }}">{{ row.tier_label }}</span>
+                            {% endif %}
+                            <span class="status-badge status-{{ app.status|lower }}">{{ app.get_status_display }}</span>
+                        </p>
+
+                        <div style="display:flex; align-items:center; gap:0.6rem; margin:0.4rem 0;">
+                            <div class="score-bar">
+                                <div class="score-bar-fill" style="width:{{ app.match_score|default_if_none:0 }}%;"></div>
+                            </div>
+                            {# default_if_none, not default: a real 0.0 score must not render as "not scored" #}
+                            <span class="score-value">
+                                {% if app.match_score is None %}Not scored{% else %}{{ app.match_score }}%{% endif %}
+                            </span>
+                        </div>
+
+                        <p class="record-meta">
+                            {{ app.matched_skills|length }} matched ·
+                            {{ app.missing_skills|length }} missing ·
+                            {{ app.bonus_skills|length }} bonus
+                            {% if row.experience %}
+                                · <span class="verdict-badge verdict-{{ row.experience.verdict }}">Exp: {{ row.experience.verdict }}</span>
+                            {% endif %}
+                            {% if row.education %}
+                                <span class="verdict-badge verdict-{{ row.education.verdict }}">Edu: {{ row.education.verdict }}</span>
+                            {% endif %}
+                            {% if app.low_signal %}
+                                <span class="low-signal-flag">⚠ Low signal — review manually</span>
+                            {% endif %}
+                        </p>
+                        {% if row.interview %}
+                            {# Read-only: interviewers schedule, recruiters just see status. #}
+                            <p class="record-meta">
+                                Interview {{ row.interview.scheduled_at|date:"d M Y" }} at
+                                {{ row.interview.scheduled_at|time:"g:i A" }}
+                                {% if row.show_identity %}with {{ row.interview.interviewer.full_name }}{% endif %}
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <div class="record-actions">
+                        <a href="{% url 'score_card' app.pk %}" class="btn-small">View score card</a>
+                        {% if app.status == 'APPLIED' %}
+                            <form method="post" action="{% url 'update_application_status' app.pk 'shortlist' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-small">Shortlist</button>
+                            </form>
+                            <form method="post" action="{% url 'update_application_status' app.pk 'reject' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-small">Reject</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endwith %}
+            {% empty %}
+                <p class="empty-state">No applications for this posting yet.</p>
+            {% endfor %}
+        </div>
+
+        <p class="dash-footer-note">
+            Scores are advisory only — they never shortlist or reject anyone automatically.
+        </p>
+    </div>
+</body>
+</html>

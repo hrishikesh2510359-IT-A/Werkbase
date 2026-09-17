@@ -1,0 +1,63 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — {% if interview %}Reschedule{% else %}Schedule{% endif %} Interview</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="wide-page">
+        <div class="wide-card">
+            <h1>{% if interview %}Reschedule Interview{% else %}Schedule Interview{% endif %}</h1>
+            <p class="record-meta">
+                {{ application.candidate.full_name }} · {{ application.job_posting.job_title }}
+                {% if application.fit_tier %}
+                    <span class="tier-chip tier-{{ application.fit_tier }}">{{ application.match_score }}%</span>
+                {% endif %}
+            </p>
+
+            {% if not google_enabled %}
+                <div class="notice-strip">
+                    Google Calendar isn't configured, so a Meet link can't be generated automatically.
+                    Paste a meeting link below — the interview will be flagged as manually linked.
+                </div>
+            {% endif %}
+
+            {% if form.non_field_errors %}
+                <div class="error-banner">{{ form.non_field_errors.0 }}</div>
+            {% endif %}
+
+            <!-- Security boundary: interviewer is set server-side from request.user;
+                 the double-booking check runs in the view, not just this form. -->
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="field">
+                        <label for="id_scheduled_at">{{ form.scheduled_at.label }}</label>
+                        {{ form.scheduled_at }}
+                        {% if form.scheduled_at.errors %}<div class="notice-banner">{{ form.scheduled_at.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="field">
+                        <label for="id_duration_minutes">{{ form.duration_minutes.label }}</label>
+                        {{ form.duration_minutes }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="id_manual_link">{{ form.manual_link.label }}</label>
+                    {{ form.manual_link }}
+                    <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.3rem 0 0;">{{ form.manual_link.help_text }}</p>
+                    {% if form.manual_link.errors %}<div class="notice-banner">{{ form.manual_link.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary" style="width:auto; padding:0.7rem 1.5rem;">
+                        {% if interview %}Save New Slot{% else %}Schedule{% endif %}
+                    </button>
+                    <a href="{% if interview %}{% url 'my_interviews' %}{% else %}{% url 'interviewer_dashboard' %}{% endif %}"
+                       class="btn-secondary" style="text-decoration:none; text-align:center;">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

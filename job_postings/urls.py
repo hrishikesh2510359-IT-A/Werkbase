@@ -22,5 +22,4 @@ urlpatterns = [
     path('applications/mine/', views.my_applications_view, name='my_applications'),
 
     path('interviewer/', views.interviewer_dashboard_view, name='interviewer_dashboard'),
-    path('interviewer/applications/<int:pk>/schedule/', views.schedule_interview_stub_view, name='schedule_interview'),
 ]
