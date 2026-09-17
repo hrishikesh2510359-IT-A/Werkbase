@@ -1,0 +1,213 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Recruitment Analytics</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="dash-page">
+        <div class="dash-header">
+            <div class="dash-welcome">
+                <h1>Recruitment Analytics</h1>
+                <span class="role-pill">Read-only</span>
+            </div>
+            <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
+        </div>
+
+        {# ---------------- Piece 5: filters ---------------- #}
+        <form method="get" class="wide-card" style="margin-bottom:1.5rem;">
+            <div class="form-row">
+                <div class="field" style="margin-bottom:0;">
+                    <label for="id_job">Job</label>
+                    <select id="id_job" name="job">
+                        <option value="">All jobs</option>
+                        {% for job in job_choices %}
+                            <option value="{{ job.id }}" {% if job.id == selected_job %}selected{% endif %}>{{ job.job_title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-row" style="gap:0.75rem;">
+                    <div class="field" style="margin-bottom:0;">
+                        <label for="id_date_from">Applied from</label>
+                        <input type="date" id="id_date_from" name="date_from" value="{{ date_from }}">
+                    </div>
+                    <div class="field" style="margin-bottom:0;">
+                        <label for="id_date_to">Applied to</label>
+                        <input type="date" id="id_date_to" name="date_to" value="{{ date_to }}">
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" name="sort" value="{{ sort }}">
+            <div class="form-actions" style="margin-top:1rem;">
+                <button type="submit" class="btn-primary" style="width:auto; padding:0.6rem 1.4rem;">Apply filters</button>
+                {% if filters_active %}
+                    <a href="{% url 'analytics_dashboard' %}" class="btn-secondary" style="text-decoration:none;">Clear</a>
+                {% endif %}
+            </div>
+            <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.6rem 0 0;">
+                Dates filter by application date. The job-posting count uses each posting's creation date instead.
+            </p>
+        </form>
+
+        {# ---------------- Piece 4: summary cards ---------------- #}
+        <div class="card-grid" style="margin-bottom:1.5rem;">
+            <div class="stat-card">
+                <p class="stat-value">{{ summary.total_postings }}</p>
+                <p class="stat-label">Job Postings</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-value">{{ summary.total_applications }}</p>
+                <p class="stat-label">Applications Received</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-value">{{ summary.total_interviews }}</p>
+                <p class="stat-label">Interviews Scheduled</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-value">{{ summary.total_selected }}</p>
+                <p class="stat-label">Selected / Hired</p>
+            </div>
+        </div>
+
+        {# ---------------- Piece 1: funnel ---------------- #}
+        <div class="wide-card" style="max-width:none; margin-bottom:1.5rem;">
+            <h1>Application Funnel</h1>
+            {% if funnel_has_data %}
+                <div style="position:relative; height:280px;">
+                    <canvas id="funnelChart"></canvas>
+                </div>
+            {% else %}
+                <p class="empty-state">No applications match these filters yet.</p>
+            {% endif %}
+            <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.6rem 0 0;">
+                Each bar counts candidates who reached at least that stage. "Selected" includes
+                candidates interviewed with a Proceed recommendation, since final hire approval
+                isn't recorded yet.
+            </p>
+        </div>
+
+        <div class="form-row" style="margin-bottom:1.5rem;">
+            {# ---------------- Piece 2: time to hire ---------------- #}
+            <div class="wide-card" style="max-width:none;">
+                <h1>Time to Hire</h1>
+                {% if time_to_hire %}
+                    <div class="record-actions" style="margin-bottom:0.75rem;">
+                        <a class="btn-small" href="?job={{ selected_job|default_if_none:'' }}&date_from={{ date_from }}&date_to={{ date_to }}&sort=desc"
+                           {% if sort == 'desc' %}style="background:var(--color-accent-light); color:#fff;"{% endif %}>Longest first</a>
+                        <a class="btn-small" href="?job={{ selected_job|default_if_none:'' }}&date_from={{ date_from }}&date_to={{ date_to }}&sort=asc"
+                           {% if sort == 'asc' %}style="background:var(--color-accent-light); color:#fff;"{% endif %}>Shortest first</a>
+                    </div>
+                    <div class="record-list">
+                        {% for row in time_to_hire %}
+                            <div class="record-row">
+                                <div>
+                                    <p class="record-title">{{ row.job_title }}</p>
+                                    <p class="record-meta">{{ row.hires }} hire{{ row.hires|pluralize }}</p>
+                                </div>
+                                <span class="score-value">{{ row.avg_days }} days</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty-state">No completed hires yet for these filters.</p>
+                {% endif %}
+                <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.6rem 0 0;">
+                    Days from posting creation to a Proceed recommendation. Jobs with no hire are left out, not counted as zero.
+                </p>
+            </div>
+
+            {# ---------------- Piece 3: sources ---------------- #}
+            <div class="wide-card" style="max-width:none;">
+                <h1>Candidate Sources</h1>
+                {% if sources_has_data %}
+                    <div style="position:relative; height:260px;">
+                        <canvas id="sourceChart"></canvas>
+                    </div>
+                {% else %}
+                    <p class="empty-state">No applications match these filters yet.</p>
+                {% endif %}
+                <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.6rem 0 0;">
+                    "Not recorded" covers applications submitted before the source question existed.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {# Data is handed to JS via json_script (escaped), never interpolated into the script body. #}
+    {{ funnel|json_script:"funnel-data" }}
+    {{ sources|json_script:"source-data" }}
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            if (typeof Chart === 'undefined') {
+                // CDN unreachable (e.g. offline demo): leave the canvases blank rather than throw.
+                document.querySelectorAll('canvas').forEach(function (c) {
+                    c.parentNode.innerHTML = '<p class="empty-state">Charts need an internet connection to load.</p>';
+                });
+                return;
+            }
+
+            // Pull the palette from the existing CSS variables so charts match the app.
+            var css = getComputedStyle(document.documentElement);
+            var primary = css.getPropertyValue('--color-primary').trim();
+            var accent = css.getPropertyValue('--color-accent').trim();
+            var accentLight = css.getPropertyValue('--color-accent-light').trim();
+            var muted = css.getPropertyValue('--color-text-muted').trim();
+            var textColor = css.getPropertyValue('--color-text').trim();
+
+            Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+            Chart.defaults.color = textColor;
+
+            var funnelCanvas = document.getElementById('funnelChart');
+            if (funnelCanvas) {
+                var funnel = JSON.parse(document.getElementById('funnel-data').textContent);
+                new Chart(funnelCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: funnel.labels,
+                        datasets: [{
+                            label: 'Candidates',
+                            data: funnel.values,
+                            backgroundColor: [primary, primary, accent, accent, accentLight],
+                            borderRadius: 6,
+                        }],
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: accentLight } },
+                            y: { grid: { display: false } },
+                        },
+                    },
+                });
+            }
+
+            var sourceCanvas = document.getElementById('sourceChart');
+            if (sourceCanvas) {
+                var sources = JSON.parse(document.getElementById('source-data').textContent);
+                new Chart(sourceCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: sources.labels,
+                        datasets: [{
+                            data: sources.values,
+                            backgroundColor: [primary, accent, accentLight, muted, '#1E4258', '#8FA06F'],
+                            borderWidth: 2,
+                            borderColor: '#FFFFFF',
+                        }],
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } },
+                    },
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

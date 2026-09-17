@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 
+from interviews.models import Notification
 from job_postings.models import Application, JobPosting, VacancyRequest
 
 from .decorators import hr_admin_required
@@ -46,13 +47,17 @@ def _dashboard_context(user):
             .distinct()
             .prefetch_related("applications__candidate")
         )
-        pending_applicants = Application.objects.filter(status=Application.Status.APPLIED).select_related("candidate", "job_posting")
+        # An interviewer acts only on SHORTLISTED candidates (scheduling is gated
+        # to Shortlisted everywhere). Filtering APPLIED here made this list a dead
+        # end - it never surfaced an actionable candidate. Shortlisted = "ready to
+        # be interviewed".
+        pending_applicants = Application.objects.filter(status=Application.Status.SHORTLISTED).select_related("candidate", "job_posting")
         return {
             "postings_with_applicants": postings_with_applicants[:5],
             "pending_applicants": pending_applicants,
             "stats": [
                 {"label": "Postings with applicants", "value": postings_with_applicants.count()},
-                {"label": "Awaiting review", "value": pending_applicants.count()},
+                {"label": "Awaiting interview", "value": pending_applicants.count()},
             ],
         }
 
@@ -62,6 +67,7 @@ def _dashboard_context(user):
         return {
             "recent_jobs": JobPosting.objects.filter(status=JobPosting.Status.PUBLISHED)[:5],
             "recent_applications": my_applications[:5],
+            "unread_notifications": Notification.objects.filter(recipient=user, is_read=False).count(),
             "stats": [
                 {"label": "Applications submitted", "value": my_applications.count()},
             ],

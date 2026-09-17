@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -40,6 +41,9 @@ INSTALLED_APPS = [
     'accounts',
     'job_postings',
     'candidates',
+    'screening',
+    'interviews',
+    'analytics',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -113,7 +117,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Datetimes are stored in UTC (USE_TZ=True) and rendered in this zone.
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -131,3 +136,12 @@ MEDIA_ROOT = BASE_DIR / 'media'
 LOGIN_URL = '/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
+
+# --- Google Calendar / Meet -------------------------------------------------
+# Read from the environment, never hardcoded. Leave unset and the interviews
+# module falls back to manual meeting links (flagged as "manually linked").
+# GOOGLE_CALENDAR_CREDENTIALS_FILE: absolute path to a service-account JSON key.
+# GOOGLE_CALENDAR_IMPERSONATE_USER: Workspace user to act as (domain-wide
+# delegation) - required for Meet links; a bare service account can't mint them.
+GOOGLE_CALENDAR_CREDENTIALS_FILE = os.environ.get('GOOGLE_CALENDAR_CREDENTIALS_FILE', '')
+GOOGLE_CALENDAR_IMPERSONATE_USER = os.environ.get('GOOGLE_CALENDAR_IMPERSONATE_USER', '')

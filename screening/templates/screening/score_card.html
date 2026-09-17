@@ -1,0 +1,119 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Score Card</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="wide-page">
+        <div class="wide-card">
+            <h1>
+                {{ application.candidate.full_name }}
+                {% if application.fit_tier %}
+                    <span class="tier-chip tier-{{ application.fit_tier }}">{{ tier_label }}</span>
+                {% endif %}
+            </h1>
+            <p class="record-meta">
+                Applied to {{ posting.job_title }} on {{ application.applied_at|date:"M j, Y" }}
+                · <span class="status-badge status-{{ application.status|lower }}">{{ application.get_status_display }}</span>
+            </p>
+
+            {% if application.low_signal %}
+                <div class="notice-strip" style="margin-top:1rem;">
+                    ⚠ Low signal — we parsed very few skills from this resume, so the score may
+                    understate this candidate. Review the resume manually before deciding.
+                </div>
+            {% endif %}
+
+            <div class="form-section-title">Match Score</div>
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+                <div class="score-bar" style="width:240px;">
+                    <div class="score-bar-fill" style="width:{{ application.match_score|default_if_none:0 }}%;"></div>
+                </div>
+                {# default_if_none, not default: a real 0.0 score must not render as "not scored" #}
+                <span class="score-value">
+                    {% if application.match_score is None %}Not scored{% else %}{{ application.match_score }}%{% endif %}
+                </span>
+            </div>
+            <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.4rem 0 0;">
+                Skills only. Experience and education are reported separately below and are
+                deliberately not folded into this percentage.
+            </p>
+
+            <div class="form-section-title">Matched ✓</div>
+            <div class="skill-chip-row">
+                {% for match in application.matched_skills %}
+                    <span class="tag-chip">
+                        {{ match.job_skill }}
+                        {% if match.similarity < 100 %}
+                            <span style="font-weight:normal;">≈ {{ match.candidate_skill }}</span>
+                        {% endif %}
+                    </span>
+                {% empty %}
+                    <span class="empty-state" style="padding:0;">No required skills matched.</span>
+                {% endfor %}
+            </div>
+
+            <div class="form-section-title">Missing ✗ (required)</div>
+            <div class="skill-chip-row">
+                {% for skill in application.missing_skills %}
+                    <span class="skill-chip-missing">{{ skill }}</span>
+                {% empty %}
+                    <span class="empty-state" style="padding:0;">Nothing missing — all required skills matched.</span>
+                {% endfor %}
+            </div>
+
+            <div class="form-section-title">Bonus ★ (nice-to-have)</div>
+            <div class="skill-chip-row">
+                {% for match in application.bonus_skills %}
+                    <span class="skill-chip-bonus">
+                        {{ match.job_skill }}
+                        {% if match.similarity < 100 %}
+                            <span style="font-weight:normal;">≈ {{ match.candidate_skill }}</span>
+                        {% endif %}
+                    </span>
+                {% empty %}
+                    <span class="empty-state" style="padding:0;">No nice-to-have skills matched.</span>
+                {% endfor %}
+            </div>
+
+            <div class="form-section-title">Experience &amp; Education</div>
+            <p style="margin:0 0 0.5rem;">
+                <span class="verdict-badge verdict-{{ experience.verdict }}">Experience: {{ experience.verdict }}</span>
+                {% if experience.years is not None %}
+                    <span class="record-meta">~{{ experience.years }} yr detected, {{ experience.required }} required</span>
+                {% elif experience.verdict == 'unknown' %}
+                    <span class="record-meta">Couldn't determine from the resume — check manually</span>
+                {% endif %}
+            </p>
+            <p style="margin:0;">
+                <span class="verdict-badge verdict-{{ education.verdict }}">Education: {{ education.verdict }}</span>
+                <span class="record-meta">{{ education.required }} required</span>
+            </p>
+
+            <div class="form-section-title">Resume</div>
+            {% if application.resume %}
+                <p style="margin:0;"><a href="{{ application.resume.url }}" style="color:var(--color-primary);">Open submitted resume</a></p>
+            {% else %}
+                <p class="empty-state" style="padding:0;">No resume on this application.</p>
+            {% endif %}
+
+            <div class="form-actions">
+                {% if application.status == 'APPLIED' %}
+                    <form method="post" action="{% url 'update_application_status' application.pk 'shortlist' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-primary" style="width:auto; padding:0.7rem 1.5rem;">Shortlist</button>
+                    </form>
+                    <form method="post" action="{% url 'update_application_status' application.pk 'reject' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-secondary">Reject</button>
+                    </form>
+                {% endif %}
+                <a href="{% url 'ranked_candidates' posting.pk %}" class="btn-secondary" style="text-decoration:none; text-align:center;">Back to Ranked List</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

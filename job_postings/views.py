@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.decorators import role_required
 from accounts.models import User
+from screening.services import score_application
 
 from .forms import ApplicationForm, JobPostingForm, VacancyRequestForm
 from .models import Application, Department, JobPosting, VacancyRequest
@@ -322,7 +323,7 @@ def apply_job_view(request, pk):
                 form.add_error("resume", "Upload a resume, or add one to your profile first.")
             else:
                 try:
-                    Application.objects.create(
+                    application = Application.objects.create(
                         job_posting=posting,
                         candidate=request.user,  # never taken from the form
                         resume=resume,
@@ -347,6 +348,9 @@ def apply_job_view(request, pk):
                     # this catches a double-submit race the pre-check above can miss.
                     messages.info(request, "You've already applied to this job.")
                     return redirect("job_detail", pk=posting.pk)
+                # Score at apply-time so the recruiter's ranked list is ready
+                # immediately. Advisory only - never changes the application status.
+                score_application(application)
                 messages.success(request, f"Application submitted for {posting.job_title}.")
                 return redirect("my_applications")
     else:
@@ -363,7 +367,11 @@ def apply_job_view(request, pk):
 @role_required(User.Role.CANDIDATE)
 def my_applications_view(request):
     # Ownership boundary: a candidate only ever sees their own applications.
-    applications = Application.objects.filter(candidate=request.user).select_related("job_posting")
+    applications = (
+        Application.objects.filter(candidate=request.user)
+        .select_related("job_posting")
+        .prefetch_related("interviews")  # scheduled interview shown inline
+    )
     return render(request, "job_postings/my_applications.html", {"applications": applications})
 
 
@@ -382,11 +390,5 @@ def interviewer_dashboard_view(request):
     return render(request, "job_postings/interviewer_dashboard.html", {"postings": postings})
 
 
-@role_required(User.Role.INTERVIEWER)
-def schedule_interview_stub_view(request, pk):
-    application = get_object_or_404(Application, pk=pk)
-    if request.method != "POST":
-        raise PermissionDenied("Invalid request method.")
-    # Stub: interview scheduling mechanics (calendar, Google Meet link) are a later module.
-    messages.info(request, f"Interview scheduling for {application.candidate.full_name} is coming in a future module.")
-    return redirect("interviewer_dashboard")
+# The interview-scheduling stub that used to live here has been replaced by the
+# real implementation in the `interviews` app (see interviews.views).

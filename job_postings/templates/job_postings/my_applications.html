@@ -27,11 +27,30 @@
         <div class="record-list">
             {% for app in applications %}
                 <div class="record-row">
-                    <div>
+                    <div style="flex:1; min-width:240px;">
                         <p class="record-title">{{ app.job_posting.job_title }}</p>
                         <p class="record-meta">Applied {{ app.applied_at|date:"M j, Y" }}</p>
+                        {% for iv in app.interviews.all %}
+                            {% if iv.status == 'SCHEDULED' %}
+                                <p class="record-meta">
+                                    Interview: {{ iv.scheduled_at|date:"D, d M Y" }} at {{ iv.scheduled_at|time:"g:i A" }}
+                                </p>
+                            {% endif %}
+                        {% endfor %}
                     </div>
-                    <span class="status-badge status-{{ app.status|lower }}">{{ app.get_status_display }}</span>
+                    <div class="record-actions">
+                        {% for iv in app.interviews.all %}
+                            {% if iv.status == 'SCHEDULED' and iv.meet_link %}
+                                {% if iv.is_join_window_open %}
+                                    <a href="{{ iv.meet_link }}" target="_blank" rel="noopener" class="btn-small">Join Interview</a>
+                                {% else %}
+                                    {# Link is visible but not live until the slot is close. #}
+                                    <span class="record-meta">Join link opens 10 min before</span>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        <span class="status-badge status-{{ app.status|lower }}">{{ app.get_status_display }}</span>
+                    </div>
                 </div>
             {% empty %}
                 <p class="empty-state">You haven't applied to any jobs yet.</p>

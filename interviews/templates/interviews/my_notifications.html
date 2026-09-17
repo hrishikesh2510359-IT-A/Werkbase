@@ -1,0 +1,35 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Werkbase — Notifications</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <div class="dash-page">
+        <div class="dash-header">
+            <div class="dash-welcome">
+                <h1>Notifications</h1>
+            </div>
+            <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
+        </div>
+
+        <div class="record-list">
+            {% for note in notifications %}
+                <div class="record-row">
+                    <div>
+                        <p class="record-title">{{ note.message }}</p>
+                        <p class="record-meta">{{ note.created_at|date:"d M Y" }} at {{ note.created_at|time:"g:i A" }}</p>
+                    </div>
+                    {% if note.link %}
+                        <a href="{{ note.link }}" class="btn-small">View</a>
+                    {% endif %}
+                </div>
+            {% empty %}
+                <p class="empty-state">No notifications yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

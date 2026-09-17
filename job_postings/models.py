@@ -167,6 +167,8 @@ class Application(models.Model):
     class Status(models.TextChoices):
         APPLIED = "APPLIED", "Applied"
         SHORTLISTED = "SHORTLISTED", "Shortlisted"
+        # Set by the interviews module once a slot is booked.
+        INTERVIEW_SCHEDULED = "INTERVIEW_SCHEDULED", "Interview Scheduled"
         INTERVIEWED = "INTERVIEWED", "Interviewed"
         SELECTED = "SELECTED", "Selected"
         REJECTED = "REJECTED", "Rejected"
@@ -202,7 +204,20 @@ class Application(models.Model):
     referral_source = models.CharField(max_length=20, choices=REFERRAL_SOURCE_CHOICES, blank=True)
     referred_by = models.CharField(max_length=150, blank=True)
 
-    status = models.CharField(max_length=16, choices=Status.choices, default=Status.APPLIED)
+    # --- Resume screening results ------------------------------------------
+    # Computed by screening.services.score_application() at apply-time and on
+    # recompute. Stored (not derived on read) so the ranked list can sort in
+    # the database and a future analytics module can read scores directly.
+    match_score = models.FloatField(null=True, blank=True)
+    matched_skills = models.JSONField(default=list, blank=True)
+    missing_skills = models.JSONField(default=list, blank=True)
+    bonus_skills = models.JSONField(default=list, blank=True)
+    fit_tier = models.CharField(max_length=16, blank=True)
+    low_signal = models.BooleanField(default=False)
+    scored_at = models.DateTimeField(null=True, blank=True)
+
+    # 24, not 16: "INTERVIEW_SCHEDULED" is 19 characters.
+    status = models.CharField(max_length=24, choices=Status.choices, default=Status.APPLIED)
     applied_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

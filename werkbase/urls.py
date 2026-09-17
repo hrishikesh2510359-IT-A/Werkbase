@@ -24,6 +24,9 @@ urlpatterns = [
     path('', include('accounts.urls')),
     path('jobs/', include('job_postings.urls')),
     path('candidate/', include('candidates.urls')),
+    path('screening/', include('screening.urls')),
+    path('interviews/', include('interviews.urls')),
+    path('analytics/', include('analytics.urls')),
 ]
 
 if settings.DEBUG:

@@ -17,6 +17,10 @@
                 {% if request.user.role == 'HR_ADMIN' %}
                     <a href="{% url 'create_company_user' %}" class="btn-logout" style="margin-right:0.5rem;">Create User</a>
                 {% endif %}
+                {% if request.user.role != 'CANDIDATE' %}
+                    {# Link hiding is cosmetic only - the analytics view itself 403s candidates. #}
+                    <a href="{% url 'analytics_dashboard' %}" class="btn-logout" style="margin-right:0.5rem;">Analytics</a>
+                {% endif %}
                 <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
             </div>
         </div>
@@ -117,10 +121,11 @@
         {% elif request.user.role == 'INTERVIEWER' %}
             <div class="record-actions" style="margin-bottom:1rem;">
                 <a href="{% url 'interviewer_dashboard' %}" class="btn-small">View All Applicants</a>
+                <a href="{% url 'my_interviews' %}" class="btn-small">My Interviews</a>
             </div>
 
             <details class="wide-card" style="margin-bottom:1.25rem;">
-                <summary style="cursor:pointer; font-weight:600; color:var(--color-primary);">Awaiting Review ({{ pending_applicants|length }})</summary>
+                <summary style="cursor:pointer; font-weight:600; color:var(--color-primary);">Awaiting Interview ({{ pending_applicants|length }})</summary>
                 <div class="record-list" style="margin-top:1rem;">
                     {% for app in pending_applicants %}
                         <div class="record-row">
@@ -128,10 +133,11 @@
                                 <p class="record-title">{{ app.candidate.full_name }}</p>
                                 <p class="record-meta">Applied to {{ app.job_posting.job_title }}</p>
                             </div>
-                            <form method="post" action="{% url 'schedule_interview' app.pk %}">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-small">Schedule Interview</button>
-                            </form>
+                            {% if app.status == 'SHORTLISTED' %}
+                                <a href="{% url 'schedule_interview' app.pk %}" class="btn-small">Schedule Interview</a>
+                            {% else %}
+                                <span class="record-meta">Awaiting shortlist</span>
+                            {% endif %}
                         </div>
                     {% empty %}
                         <p class="empty-state">Nothing awaiting review.</p>
@@ -159,6 +165,9 @@
                 <a href="{% url 'browse_jobs' %}" class="btn-small">Browse Jobs</a>
                 <a href="{% url 'my_applications' %}" class="btn-small">All My Applications</a>
                 <a href="{% url 'my_profile' %}" class="btn-small">My Profile</a>
+                <a href="{% url 'my_notifications' %}" class="btn-small">
+                    Notifications{% if unread_notifications %} ({{ unread_notifications }}){% endif %}
+                </a>
             </div>
 
             <h1 style="font-size:1rem; margin-bottom:0.75rem;">Latest Openings</h1>
