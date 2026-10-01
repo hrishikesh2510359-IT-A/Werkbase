@@ -1,27 +1,32 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Review Your Profile</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="wide-page">
-        <div class="wide-card">
-            <h1>Review Your Profile</h1>
-            <div class="notice-strip">
-                We pulled this from your resume where we could confidently tell — please check it over and fix anything before you finish signing up. Blank fields just mean we weren't sure; fill in what applies.
-            </div>
+{% extends "base_public.html" %}
 
-            <form method="post">
-                {% csrf_token %}
-                {% include "candidates/_profile_fields.html" %}
-                <div class="form-actions">
-                    <button type="submit" class="btn-primary">Finish Sign Up</button>
-                </div>
-            </form>
+{% block title %}Werkbase — Review Your Profile{% endblock %}
+
+{% block card %}{% endblock %}
+
+{% block body %}
+<div class="min-h-screen flex flex-col items-center px-4 py-10">
+    <a href="{% url 'portal_select' %}" class="flex items-center gap-2.5 mb-6">
+        <div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white shadow-sm">
+            <span class="material-symbols-outlined text-[22px] ms-fill">hub</span>
         </div>
+        <span class="font-display font-bold text-xl text-primary-deep">Werkbase</span>
+    </a>
+
+    <div class="w-full max-w-2xl bg-surface border border-border rounded-2xl shadow-sm p-7">
+        <h1 class="font-display font-bold text-2xl text-primary-deep">Review Your Profile</h1>
+        <div class="mt-3 mb-5 flex items-start gap-2 px-4 py-3 rounded-xl bg-primary-soft text-primary-deep text-sm">
+            <span class="material-symbols-outlined text-[18px] text-primary">auto_awesome</span>
+            <span>We pulled this from your resume where we could confidently tell — please check it over and fix anything before you finish. Blank fields just mean we weren't sure.</span>
+        </div>
+
+        <form method="post" class="wb-form">
+            {% csrf_token %}
+            {% include "candidates/_profile_fields.html" %}
+            <div class="mt-6">
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition shadow-sm">Finish Sign Up</button>
+            </div>
+        </form>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

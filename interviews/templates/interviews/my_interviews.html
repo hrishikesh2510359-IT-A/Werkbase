@@ -1,88 +1,47 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — My Interviews</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="dash-page">
-        <div class="dash-header">
-            <div class="dash-welcome">
-                <h1>My Interviews</h1>
+{% extends "base_app.html" %}
+
+{% block title %}Werkbase — My Interviews{% endblock %}
+{% block page_title %}My Interviews{% endblock %}
+{% block topbar_actions %}
+<a href="{% url 'interviewer_dashboard' %}" class="hidden sm:inline-flex px-3.5 py-2 rounded-lg border border-border text-sm font-medium text-on-surface hover:bg-surface-alt transition">Applicants</a>
+{% endblock %}
+
+{% block content %}
+<!-- Scope tabs -->
+<div class="flex flex-wrap gap-2 mb-4">
+    {% with tab="px-3.5 py-1.5 rounded-lg text-sm font-medium transition" %}
+    <a href="?scope=upcoming" class="{{ tab }} {% if scope == 'upcoming' %}bg-primary text-white{% else %}bg-surface border border-border text-muted hover:bg-surface-alt{% endif %}">Upcoming</a>
+    <a href="?scope=today" class="{{ tab }} {% if scope == 'today' %}bg-primary text-white{% else %}bg-surface border border-border text-muted hover:bg-surface-alt{% endif %}">Today</a>
+    <a href="?scope=week" class="{{ tab }} {% if scope == 'week' %}bg-primary text-white{% else %}bg-surface border border-border text-muted hover:bg-surface-alt{% endif %}">This Week</a>
+    <a href="?scope=all" class="{{ tab }} {% if scope == 'all' %}bg-primary text-white{% else %}bg-surface border border-border text-muted hover:bg-surface-alt{% endif %}">All</a>
+    {% endwith %}
+</div>
+
+<div class="bg-surface border border-border rounded-2xl shadow-sm divide-y divide-border">
+    {% for row in rows %}
+    {% with iv=row.interview %}
+    <div class="px-5 py-4 flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+                <p class="font-semibold text-on-surface">{{ iv.application.candidate.full_name }}</p>
+                {% include "_status_badge.html" with status=iv.status label=iv.get_status_display %}
+                {% if iv.is_manual_link %}<span class="px-2 py-0.5 rounded-full bg-warning-soft text-warning text-[10px] font-bold">Manual link</span>{% endif %}
             </div>
-            <div class="record-actions">
-                <a href="{% url 'interviewer_dashboard' %}" class="btn-logout">Applicants</a>
-                <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
-            </div>
+            <p class="text-[13px] text-muted mt-0.5">{{ iv.application.job_posting.job_title }} · {{ iv.scheduled_at|date:"D, d M Y" }} at {{ iv.scheduled_at|time:"g:i A" }} ({{ iv.duration_minutes }} min)</p>
+            {% if iv.status == 'COMPLETED' %}<p class="text-[13px] text-accent font-medium mt-1">Feedback: {{ iv.rating }}/5 · {{ iv.get_recommendation_display }}</p>{% endif %}
         </div>
-
-        {% if messages %}
-            {% for message in messages %}
-                <div class="notice-strip">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-
-        <div class="record-actions" style="margin-bottom:1.25rem;">
-            <a href="?scope=upcoming" class="btn-small" {% if scope == 'upcoming' %}style="background:var(--color-accent-light); color:#fff;"{% endif %}>Upcoming</a>
-            <a href="?scope=today" class="btn-small" {% if scope == 'today' %}style="background:var(--color-accent-light); color:#fff;"{% endif %}>Today</a>
-            <a href="?scope=week" class="btn-small" {% if scope == 'week' %}style="background:var(--color-accent-light); color:#fff;"{% endif %}>This Week</a>
-            <a href="?scope=all" class="btn-small" {% if scope == 'all' %}style="background:var(--color-accent-light); color:#fff;"{% endif %}>All</a>
-        </div>
-
-        <div class="record-list">
-            {% for row in rows %}
-                {% with iv=row.interview %}
-                <div class="record-row">
-                    <div style="flex:1; min-width:260px;">
-                        <p class="record-title">
-                            {{ iv.application.candidate.full_name }}
-                            <span class="status-badge status-{{ iv.status|lower }}">{{ iv.get_status_display }}</span>
-                            {% if iv.is_manual_link %}
-                                <span class="verdict-badge">Manually linked</span>
-                            {% endif %}
-                        </p>
-                        <p class="record-meta">
-                            {{ iv.application.job_posting.job_title }} ·
-                            {{ iv.scheduled_at|date:"D, d M Y" }} at {{ iv.scheduled_at|time:"g:i A" }}
-                            ({{ iv.duration_minutes }} min)
-                        </p>
-                        {% if iv.status == 'COMPLETED' %}
-                            <p class="record-meta">
-                                Feedback: {{ iv.rating }}/5 · {{ iv.get_recommendation_display }}
-                            </p>
-                        {% endif %}
-                    </div>
-
-                    <div class="record-actions">
-                        {% if iv.status == 'SCHEDULED' %}
-                            {% if not iv.meet_link %}
-                                <span class="record-meta">No link</span>
-                            {% elif row.can_join %}
-                                <a href="{{ iv.meet_link }}" target="_blank" rel="noopener" class="btn-small">Join Meet</a>
-                            {% else %}
-                                <span class="record-meta">Link opens near the slot</span>
-                            {% endif %}
-                        {% endif %}
-
-                        {% if iv.status == 'SCHEDULED' %}
-                            {% if row.can_give_feedback %}
-                                <a href="{% url 'submit_feedback' iv.pk %}" class="btn-small">Submit Feedback</a>
-                            {% endif %}
-                            <a href="{% url 'reschedule_interview' iv.pk %}" class="btn-small">Reschedule</a>
-                            <form method="post" action="{% url 'cancel_interview' iv.pk %}" onsubmit="return confirm('Cancel this interview?');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-small">Cancel</button>
-                            </form>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endwith %}
-            {% empty %}
-                <p class="empty-state">No interviews in this view.</p>
-            {% endfor %}
+        <div class="flex flex-wrap items-center gap-2">
+            {% if iv.status == 'SCHEDULED' %}
+                {% if iv.meet_link and row.can_join %}<a href="{{ iv.meet_link }}" target="_blank" rel="noopener" class="px-3 py-1.5 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primary-dark transition flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">videocam</span> Join</a>{% endif %}
+                {% if row.can_give_feedback %}<a href="{% url 'submit_feedback' iv.pk %}" class="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px] font-semibold hover:opacity-90 transition">Feedback</a>{% endif %}
+                <a href="{% url 'reschedule_interview' iv.pk %}" class="px-3 py-1.5 rounded-lg border border-border text-[13px] font-medium hover:bg-surface-alt transition">Reschedule</a>
+                <form method="post" action="{% url 'cancel_interview' iv.pk %}" onsubmit="return confirm('Cancel this interview?');">{% csrf_token %}<button class="px-3 py-1.5 rounded-lg border border-border text-muted text-[13px] font-medium hover:bg-danger-soft hover:text-danger transition">Cancel</button></form>
+            {% endif %}
         </div>
     </div>
-</body>
-</html>
+    {% endwith %}
+    {% empty %}
+    <div class="px-5 py-12 text-center"><span class="material-symbols-outlined text-[40px] text-border">event_busy</span><p class="text-sm text-muted mt-2">No interviews in this view.</p></div>
+    {% endfor %}
+</div>
+{% endblock %}

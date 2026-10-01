@@ -1,44 +1,32 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Candidate Sign In</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="auth-page">
-        <div class="auth-card">
-            <div class="logo">Werkbase</div>
-            <h1>Candidate Sign In</h1>
+{% extends "base_public.html" %}
 
-            {% if error %}
-                <div class="error-banner">{{ error }}</div>
-            {% endif %}
+{% block title %}Werkbase — Candidate Sign In{% endblock %}
 
-            <form method="post">
-                {% csrf_token %}
-                <div class="field">
-                    <label for="id_email">Email</label>
-                    {{ form.email }}
-                </div>
-                <div class="field">
-                    <label for="id_password">Password</label>
-                    {{ form.password }}
-                </div>
-                <button type="submit" class="btn-primary">Log In</button>
-                <div class="helper-row">
-                    <a href="#">Forgot password?</a>
-                </div>
-            </form>
+{% block card %}
+<div class="bg-surface border border-border rounded-2xl shadow-sm p-7">
+    <h1 class="font-display font-bold text-2xl text-primary-deep text-center">Candidate Sign In</h1>
+    <p class="text-sm text-muted text-center mt-1 mb-6">Welcome back — track your applications and interviews.</p>
 
-            <div class="footer-link">
-                Don't have an account? <a href="{% url 'candidate_signup' %}">Sign up</a>
-            </div>
-            <div class="footer-link">
-                <a href="{% url 'company_login' %}">Company login</a>
-            </div>
-        </div>
+    {% if error %}
+    <div class="mb-4 flex items-start gap-2 px-3.5 py-2.5 rounded-xl bg-danger-soft text-danger border border-danger/20 text-sm">
+        <span class="material-symbols-outlined text-[18px]">error</span><span>{{ error }}</span>
     </div>
-</body>
-</html>
+    {% endif %}
+
+    <form method="post" class="wb-form">
+        {% csrf_token %}
+        <div class="wb-field"><label for="id_email">Email</label>{{ form.email }}</div>
+        <div class="wb-field"><label for="id_password">Password</label>{{ form.password }}</div>
+        <div class="flex justify-end -mt-1 mb-4"><a href="#" class="text-sm text-primary hover:underline">Forgot password?</a></div>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition shadow-sm">Log In</button>
+    </form>
+
+    <p class="text-center text-sm text-muted mt-6">
+        Don't have an account? <a href="{% url 'candidate_signup' %}" class="text-primary font-semibold hover:underline">Sign up</a>
+    </p>
+</div>
+{% endblock %}
+
+{% block below_card %}
+<a href="{% url 'company_login' %}" class="mt-5 text-sm text-muted hover:text-primary transition">Company employee? Log in here</a>
+{% endblock %}

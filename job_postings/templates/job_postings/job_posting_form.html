@@ -1,178 +1,102 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Post Job Opening</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="wide-page">
-        <div class="wide-card">
-            <h1>{% if editing %}Edit Job Posting{% else %}Post Job Opening{% endif %}</h1>
+{% extends "base_app.html" %}
 
-            {% if vacancy_request %}
-                <div class="notice-strip">Pre-filled from vacancy request: {{ vacancy_request.job_title }} (raised by {{ vacancy_request.raised_by.full_name }}). Refine as needed.</div>
-            {% endif %}
-            {% if form.non_field_errors %}
-                <div class="error-banner">{{ form.non_field_errors.0 }}</div>
-            {% endif %}
+{% block title %}Werkbase — {% if editing %}Edit{% else %}Post{% endif %} Job{% endblock %}
+{% block page_title %}{% if editing %}Edit Job Posting{% else %}Post Job Opening{% endif %}{% endblock %}
 
-            <!-- Security boundary: this page is role-guarded to HR Recruiter only
-                 (role_required decorator); posted_by is set server-side, not from the form. -->
-            <form method="post" id="job-posting-form">
-                {% csrf_token %}
-                {% if vacancy_request %}<input type="hidden" name="from_vacancy" value="{{ vacancy_request.pk }}">{% endif %}
-
-                <div class="form-section-title">Basics</div>
-                <div class="field">
-                    <label for="id_job_title">Job Title</label>
-                    <input type="text" name="job_title" id="id_job_title" list="past-titles" value="{{ form.job_title.value|default:'' }}" required>
-                    <datalist id="past-titles">
-                        {% for title in past_titles %}<option value="{{ title }}">{% endfor %}
-                    </datalist>
-                    {% if form.job_title.errors %}<div class="notice-banner">{{ form.job_title.errors.0 }}</div>{% endif %}
-                </div>
-                <div class="form-row">
-                    <div class="field">
-                        <label for="id_department">Department</label>
-                        {{ form.department }}
-                    </div>
-                    <div class="field">
-                        <label for="id_employment_type">Employment Type</label>
-                        {{ form.employment_type }}
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="field">
-                        <label for="id_work_mode">Work Mode</label>
-                        {{ form.work_mode }}
-                    </div>
-                    <div class="field">
-                        <label for="id_num_openings">No. of Openings</label>
-                        {{ form.num_openings }}
-                    </div>
-                </div>
-                <div class="field">
-                    <label for="id_location">Location</label>
-                    {{ form.location }}
-                </div>
-
-                <div class="form-section-title">Requirements</div>
-                <div class="field">
-                    <label>Required Skills</label>
-                    <div class="tag-input-box" data-tag-input data-hidden-field="id_required_skills">
-                        <input type="text" placeholder="Type a skill and press Enter">
-                    </div>
-                    {{ form.required_skills }}
-                </div>
-                <div class="field">
-                    <label>Nice-to-have Skills</label>
-                    <div class="tag-input-box" data-tag-input data-hidden-field="id_nice_to_have_skills">
-                        <input type="text" placeholder="Type a skill and press Enter">
-                    </div>
-                    {{ form.nice_to_have_skills }}
-                </div>
-                <div class="form-row">
-                    <div class="field">
-                        <label for="id_min_experience_years">Minimum Experience (years)</label>
-                        {{ form.min_experience_years }}
-                    </div>
-                    <div class="field">
-                        <label for="id_education_level">Education Level</label>
-                        {{ form.education_level }}
-                    </div>
-                </div>
-                <div class="field">
-                    <label for="id_key_responsibilities">Key Responsibilities</label>
-                    {{ form.key_responsibilities }}
-                </div>
-
-                <div class="form-section-title">Meta</div>
-                <div class="form-row">
-                    <div class="field">
-                        <label for="id_reporting_to">Reporting To / Hiring Manager</label>
-                        {{ form.reporting_to }}
-                    </div>
-                    <div class="field">
-                        <label for="id_salary_range">Salary Range (optional)</label>
-                        {{ form.salary_range }}
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="field">
-                        <label for="id_closing_date">Closing Date</label>
-                        {{ form.closing_date }}
-                    </div>
-                </div>
-                <div class="field">
-                    <label for="id_internal_notes">Internal Notes (optional)</label>
-                    {{ form.internal_notes }}
-                </div>
-
-                <div class="form-actions">
-                    {% if editing %}
-                        <button type="submit" name="draft" class="btn-secondary">Save Changes</button>
-                        {% if editing.status == 'DRAFT' %}
-                            <button type="submit" name="publish" class="btn-primary" style="width:auto; padding:0.7rem 1.5rem;">Save &amp; Publish</button>
-                        {% endif %}
-                    {% else %}
-                        <button type="submit" name="draft" class="btn-secondary">Save as Draft</button>
-                        <button type="submit" name="publish" class="btn-primary" style="width:auto; padding:0.7rem 1.5rem;">Publish</button>
-                    {% endif %}
-                </div>
-            </form>
+{% block content %}
+<div class="max-w-3xl">
+    <div class="bg-surface border border-border rounded-2xl shadow-sm p-6">
+        {% if vacancy_request %}
+        <div class="mb-4 flex items-start gap-2 px-4 py-3 rounded-xl bg-primary-soft text-primary-deep text-sm">
+            <span class="material-symbols-outlined text-[18px] text-primary">auto_awesome</span>
+            <span>Pre-filled from vacancy request: <strong>{{ vacancy_request.job_title }}</strong> (raised by {{ vacancy_request.raised_by.full_name }}). Refine as needed.</span>
         </div>
+        {% endif %}
+        {% if form.non_field_errors %}<div class="mb-4 px-4 py-3 rounded-xl bg-danger-soft text-danger border border-danger/20 text-sm">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+        <!-- Security boundary: HR Recruiter only; posted_by set server-side. -->
+        <form method="post" id="job-posting-form" class="wb-form">
+            {% csrf_token %}
+            {% if vacancy_request %}<input type="hidden" name="from_vacancy" value="{{ vacancy_request.pk }}">{% endif %}
+
+            <p class="font-display font-semibold text-primary-deep mb-3 pb-2 border-b border-border">Basics</p>
+            <div class="wb-field">
+                <label for="id_job_title">Job Title</label>
+                <input type="text" name="job_title" id="id_job_title" list="past-titles" value="{{ form.job_title.value|default:'' }}" required>
+                <datalist id="past-titles">{% for title in past_titles %}<option value="{{ title }}">{% endfor %}</datalist>
+                {% if form.job_title.errors %}<p class="text-[12px] text-danger mt-1">{{ form.job_title.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="wb-field"><label for="id_department">Department</label>{{ form.department }}</div>
+                <div class="wb-field"><label for="id_employment_type">Employment Type</label>{{ form.employment_type }}</div>
+                <div class="wb-field"><label for="id_work_mode">Work Mode</label>{{ form.work_mode }}</div>
+                <div class="wb-field"><label for="id_num_openings">No. of Openings</label>{{ form.num_openings }}</div>
+            </div>
+            <div class="wb-field"><label for="id_location">Location</label>{{ form.location }}</div>
+
+            <p class="font-display font-semibold text-primary-deep mt-6 mb-3 pb-2 border-b border-border">Requirements</p>
+            <div class="wb-field">
+                <label>Required Skills</label>
+                <div class="tag-input-box" data-tag-input data-hidden-field="id_required_skills"><input type="text" placeholder="Type a skill and press Enter"></div>
+                {{ form.required_skills }}
+            </div>
+            <div class="wb-field">
+                <label>Nice-to-have Skills</label>
+                <div class="tag-input-box" data-tag-input data-hidden-field="id_nice_to_have_skills"><input type="text" placeholder="Type a skill and press Enter"></div>
+                {{ form.nice_to_have_skills }}
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="wb-field"><label for="id_min_experience_years">Minimum Experience (years)</label>{{ form.min_experience_years }}</div>
+                <div class="wb-field"><label for="id_education_level">Education Level</label>{{ form.education_level }}</div>
+            </div>
+            <div class="wb-field"><label for="id_key_responsibilities">Key Responsibilities</label>{{ form.key_responsibilities }}</div>
+
+            <p class="font-display font-semibold text-primary-deep mt-6 mb-3 pb-2 border-b border-border">Meta</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="wb-field"><label for="id_reporting_to">Reporting To / Hiring Manager</label>{{ form.reporting_to }}</div>
+                <div class="wb-field"><label for="id_salary_range">Salary Range (optional)</label>{{ form.salary_range }}</div>
+                <div class="wb-field"><label for="id_closing_date">Closing Date</label>{{ form.closing_date }}</div>
+            </div>
+            <div class="wb-field"><label for="id_internal_notes">Internal Notes (optional)</label>{{ form.internal_notes }}</div>
+
+            <div class="mt-6 flex flex-wrap gap-3">
+                {% if editing %}
+                    <button type="submit" name="draft" class="px-6 py-2.5 rounded-xl border border-border text-on-surface font-medium hover:bg-surface-alt transition">Save Changes</button>
+                    {% if editing.status == 'DRAFT' %}<button type="submit" name="publish" class="px-6 py-2.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition shadow-sm">Save &amp; Publish</button>{% endif %}
+                {% else %}
+                    <button type="submit" name="draft" class="px-6 py-2.5 rounded-xl border border-border text-on-surface font-medium hover:bg-surface-alt transition">Save as Draft</button>
+                    <button type="submit" name="publish" class="px-6 py-2.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition shadow-sm">Publish</button>
+                {% endif %}
+            </div>
+        </form>
     </div>
+</div>
 
-    <script>
-        // Lightweight tag-input widget: no external library, writes a
-        // comma-separated list into the paired hidden form field.
-        document.querySelectorAll('[data-tag-input]').forEach(function (box) {
-            var hidden = document.getElementById(box.dataset.hiddenField);
-            var textInput = box.querySelector('input[type="text"]');
-            var tags = hidden.value ? hidden.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean) : [];
-
-            function render() {
-                box.querySelectorAll('.tag-chip').forEach(function (chip) { chip.remove(); });
-                tags.forEach(function (tag, index) {
-                    var chip = document.createElement('span');
-                    chip.className = 'tag-chip';
-                    var label = document.createElement('span');
-                    label.textContent = tag;
-                    var remove = document.createElement('button');
-                    remove.type = 'button';
-                    remove.textContent = '×';
-                    remove.addEventListener('click', function () {
-                        tags.splice(index, 1);
-                        sync();
-                    });
-                    chip.appendChild(label);
-                    chip.appendChild(remove);
-                    box.insertBefore(chip, textInput);
-                });
-                hidden.value = tags.join(',');
-            }
-
-            function sync() { render(); }
-
-            textInput.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' || e.key === ',') {
-                    e.preventDefault();
-                    var value = textInput.value.trim().replace(/,$/, '');
-                    if (value && tags.indexOf(value) === -1) {
-                        tags.push(value);
-                        sync();
-                    }
-                    textInput.value = '';
-                } else if (e.key === 'Backspace' && !textInput.value && tags.length) {
-                    tags.pop();
-                    sync();
-                }
+<script>
+    document.querySelectorAll('[data-tag-input]').forEach(function (box) {
+        var hidden = document.getElementById(box.dataset.hiddenField);
+        var textInput = box.querySelector('input[type="text"]');
+        var tags = hidden.value ? hidden.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean) : [];
+        function render() {
+            box.querySelectorAll('.tag-chip').forEach(function (chip) { chip.remove(); });
+            tags.forEach(function (tag, index) {
+                var chip = document.createElement('span'); chip.className = 'tag-chip';
+                var label = document.createElement('span'); label.textContent = tag;
+                var remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '×';
+                remove.addEventListener('click', function () { tags.splice(index, 1); render(); });
+                chip.appendChild(label); chip.appendChild(remove); box.insertBefore(chip, textInput);
             });
-
-            render();
+            hidden.value = tags.join(',');
+        }
+        textInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                var value = textInput.value.trim().replace(/,$/, '');
+                if (value && tags.indexOf(value) === -1) { tags.push(value); render(); }
+                textInput.value = '';
+            } else if (e.key === 'Backspace' && !textInput.value && tags.length) { tags.pop(); render(); }
         });
-    </script>
-</body>
-</html>
+        render();
+    });
+</script>
+{% endblock %}

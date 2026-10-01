@@ -1,10 +1,10 @@
 {% load static %}
-<div class="field">
+<div class="wb-field">
     <label for="id_phone">Phone</label>
     {{ profile_form.phone }}
 </div>
 
-<div class="field">
+<div class="wb-field">
     <label>Skills</label>
     <div class="tag-input-box" data-tag-input data-hidden-field="id_skills">
         <input type="text" list="master-skills" placeholder="Type a skill and press Enter">
@@ -12,80 +12,41 @@
     <datalist id="master-skills">
         {% for name in master_skill_names %}<option value="{{ name }}">{% endfor %}
     </datalist>
-    <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.3rem 0 0;">Only skills already in our master list will be saved.</p>
+    <p class="text-[12px] text-muted mt-1.5">Only skills already in our master list will be saved.</p>
     {{ profile_form.skills }}
 </div>
 
-<div class="form-section-title">Education</div>
+<p class="font-display font-semibold text-primary-deep mt-6 mb-3 pb-2 border-b border-border">Education</p>
 {{ edu_formset.management_form }}
 {% for edu_form in edu_formset %}
-    <div class="wide-card" style="margin-bottom:0.75rem; padding:1rem;">
-        <div class="form-row">
-            <div class="field">
-                <label>Institute</label>
-                {{ edu_form.institute_name }}
-            </div>
-            <div class="field">
-                <label>Degree</label>
-                {{ edu_form.degree }}
-            </div>
-        </div>
-        <div class="form-row">
-            <div class="field">
-                <label>Field of Study</label>
-                {{ edu_form.field_of_study }}
-            </div>
-            <div class="field">
-                <label>Grade</label>
-                {{ edu_form.grade }}
-            </div>
-        </div>
-        <div class="form-row">
-            <div class="field">
-                <label>Start Year</label>
-                {{ edu_form.start_year }}
-            </div>
-            <div class="field">
-                <label>End Year</label>
-                {{ edu_form.end_year }}
-            </div>
+    <div class="rounded-xl border border-border bg-surface-alt p-4 mb-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label>Institute</label>{{ edu_form.institute_name }}</div>
+            <div><label>Degree</label>{{ edu_form.degree }}</div>
+            <div><label>Field of Study</label>{{ edu_form.field_of_study }}</div>
+            <div><label>Grade</label>{{ edu_form.grade }}</div>
+            <div><label>Start Year</label>{{ edu_form.start_year }}</div>
+            <div><label>End Year</label>{{ edu_form.end_year }}</div>
         </div>
         {% if edu_form.DELETE %}
-            <label style="font-size:0.8rem; color:var(--color-text-muted);">{{ edu_form.DELETE }} Remove this entry</label>
+            <label class="flex items-center gap-2 mt-3 text-[13px] text-muted font-normal">{{ edu_form.DELETE }} Remove this entry</label>
         {% endif %}
     </div>
 {% endfor %}
 
-<div class="form-section-title">Experience</div>
+<p class="font-display font-semibold text-primary-deep mt-6 mb-3 pb-2 border-b border-border">Experience</p>
 {{ exp_formset.management_form }}
 {% for exp_form in exp_formset %}
-    <div class="wide-card" style="margin-bottom:0.75rem; padding:1rem;">
-        <div class="form-row">
-            <div class="field">
-                <label>Company</label>
-                {{ exp_form.company_name }}
-            </div>
-            <div class="field">
-                <label>Job Title</label>
-                {{ exp_form.job_title }}
-            </div>
+    <div class="rounded-xl border border-border bg-surface-alt p-4 mb-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label>Company</label>{{ exp_form.company_name }}</div>
+            <div><label>Job Title</label>{{ exp_form.job_title }}</div>
+            <div><label>Start Date</label>{{ exp_form.start_date }}</div>
+            <div><label>End Date</label>{{ exp_form.end_date }}</div>
         </div>
-        <div class="form-row">
-            <div class="field">
-                <label>Start Date</label>
-                {{ exp_form.start_date }}
-            </div>
-            <div class="field">
-                <label>End Date</label>
-                {{ exp_form.end_date }}
-            </div>
-        </div>
-        <div class="field">
-            <label>Description</label>
-            {{ exp_form.description }}
-        </div>
+        <div class="mt-3"><label>Description</label>{{ exp_form.description }}</div>
         {% if exp_form.DELETE %}
-            <label style="font-size:0.8rem; color:var(--color-text-muted);">{{ exp_form.DELETE }} Remove this entry</label>
+            <label class="flex items-center gap-2 mt-3 text-[13px] text-muted font-normal">{{ exp_form.DELETE }} Remove this entry</label>
         {% endif %}
     </div>
 {% endfor %}

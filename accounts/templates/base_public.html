@@ -1,0 +1,34 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Werkbase{% endblock %}</title>
+    {% include "_head_assets.html" %}
+    <style>
+        .brand-bg {
+            background:
+                radial-gradient(60rem 40rem at 110% -10%, rgba(44,95,124,0.10), transparent 60%),
+                radial-gradient(50rem 40rem at -10% 110%, rgba(95,125,79,0.10), transparent 60%),
+                #f3f6f6;
+        }
+    </style>
+</head>
+<body class="brand-bg text-on-surface antialiased min-h-screen">
+    {% block body %}
+    <div class="min-h-screen flex flex-col items-center justify-center px-4 py-10">
+        <a href="{% url 'portal_select' %}" class="flex items-center gap-2.5 mb-6">
+            <div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white shadow-sm">
+                <span class="material-symbols-outlined text-[22px] ms-fill">hub</span>
+            </div>
+            <span class="font-display font-bold text-xl text-primary-deep">Werkbase</span>
+        </a>
+        <div class="w-full max-w-md">
+            {% block card %}{% endblock %}
+        </div>
+        {% block below_card %}{% endblock %}
+    </div>
+    {% endblock %}
+</body>
+</html>

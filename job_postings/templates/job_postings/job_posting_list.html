@@ -1,68 +1,39 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Job Postings</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="dash-page">
-        <div class="dash-header">
-            <div class="dash-welcome">
-                <h1>Job Postings</h1>
+{% extends "base_app.html" %}
+
+{% block title %}Werkbase — Job Postings{% endblock %}
+{% block page_title %}Job Postings{% endblock %}
+{% block topbar_actions %}
+<a href="{% url 'pending_vacancies' %}" class="hidden sm:inline-flex px-3.5 py-2 rounded-lg border border-border text-sm font-medium text-on-surface hover:bg-surface-alt transition">Pending Vacancies</a>
+<a href="{% url 'create_job_posting' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition shadow-sm"><span class="material-symbols-outlined text-[18px]">add</span> New Posting</a>
+{% endblock %}
+
+{% block content %}
+<div class="bg-surface border border-border rounded-2xl shadow-sm divide-y divide-border">
+    {% for posting in postings %}
+    <div class="px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+                <p class="font-semibold text-on-surface">{{ posting.job_title }}</p>
+                {% include "_status_badge.html" with status=posting.status label=posting.get_status_display %}
             </div>
-            <div>
-                <a href="{% url 'pending_vacancies' %}" class="btn-logout" style="margin-right:0.5rem;">Pending Vacancies</a>
-                <a href="{% url 'create_job_posting' %}" class="btn-logout" style="margin-right:0.5rem;">New Posting</a>
-                <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
-            </div>
+            <p class="text-[13px] text-muted mt-0.5">{{ posting.get_department_display }} · {{ posting.get_employment_type_display }} · {{ posting.location }}</p>
         </div>
-
-        {% if messages %}
-            {% for message in messages %}
-                <div class="notice-strip">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-
-        <div class="record-list">
-            {% for posting in postings %}
-                <div class="record-row">
-                    <div>
-                        <p class="record-title">{{ posting.job_title }}</p>
-                        <p class="record-meta">
-                            {{ posting.get_department_display }} · {{ posting.get_employment_type_display }} · {{ posting.location }}
-                            · <span class="status-badge status-{{ posting.status|lower }}">{{ posting.get_status_display }}</span>
-                        </p>
-                    </div>
-                    <div class="record-actions">
-                        <a href="{% url 'ranked_candidates' posting.pk %}" class="btn-small">Candidates</a>
-                        <a href="{% url 'edit_job_posting' posting.pk %}" class="btn-small">Edit</a>
-                        {% if posting.status == 'DRAFT' %}
-                            <form method="post" action="{% url 'transition_job_posting' posting.pk 'publish' %}">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-small">Publish</button>
-                            </form>
-                        {% elif posting.status == 'PUBLISHED' %}
-                            <form method="post" action="{% url 'transition_job_posting' posting.pk 'close' %}">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-small">Close</button>
-                            </form>
-                        {% endif %}
-                        <form method="post" action="{% url 'duplicate_job_posting' posting.pk %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn-small">Duplicate</button>
-                        </form>
-                        <form method="post" action="{% url 'delete_job_posting' posting.pk %}" onsubmit="return confirm('Delete this job posting?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn-small">Delete</button>
-                        </form>
-                    </div>
-                </div>
-            {% empty %}
-                <p class="empty-state">No job postings yet.</p>
-            {% endfor %}
+        <div class="flex flex-wrap items-center gap-1.5">
+            {% with btn="px-2.5 py-1.5 rounded-lg border border-border text-[13px] font-medium text-on-surface hover:bg-surface-alt transition" %}
+            <a href="{% url 'ranked_candidates' posting.pk %}" class="px-2.5 py-1.5 rounded-lg bg-primary-soft text-primary-deep text-[13px] font-semibold hover:bg-primary hover:text-white transition">Candidates</a>
+            <a href="{% url 'edit_job_posting' posting.pk %}" class="{{ btn }}">Edit</a>
+            {% if posting.status == 'DRAFT' %}
+                <form method="post" action="{% url 'transition_job_posting' posting.pk 'publish' %}">{% csrf_token %}<button class="{{ btn }}">Publish</button></form>
+            {% elif posting.status == 'PUBLISHED' %}
+                <form method="post" action="{% url 'transition_job_posting' posting.pk 'close' %}">{% csrf_token %}<button class="{{ btn }}">Close</button></form>
+            {% endif %}
+            <form method="post" action="{% url 'duplicate_job_posting' posting.pk %}">{% csrf_token %}<button class="{{ btn }}">Duplicate</button></form>
+            <form method="post" action="{% url 'delete_job_posting' posting.pk %}" onsubmit="return confirm('Delete this job posting?');">{% csrf_token %}<button class="px-2.5 py-1.5 rounded-lg border border-border text-[13px] font-medium text-muted hover:bg-danger-soft hover:text-danger transition">Delete</button></form>
+            {% endwith %}
         </div>
     </div>
-</body>
-</html>
+    {% empty %}
+    <div class="px-5 py-12 text-center"><span class="material-symbols-outlined text-[40px] text-border">work</span><p class="text-sm text-muted mt-2">No job postings yet.</p></div>
+    {% endfor %}
+</div>
+{% endblock %}

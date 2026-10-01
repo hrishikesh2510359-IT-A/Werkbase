@@ -1,46 +1,66 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Recruitment Revamped</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <nav class="landing-nav">
-        <div class="logo">Werkbase</div>
+{% extends "base_public.html" %}
+
+{% block title %}Werkbase — Recruitment Revamped{% endblock %}
+
+{% block body %}
+<div class="min-h-screen flex flex-col">
+    <!-- Top nav -->
+    <nav class="flex items-center justify-between px-5 sm:px-10 h-20 max-w-7xl mx-auto w-full">
+        <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white shadow-sm">
+                <span class="material-symbols-outlined text-[22px] ms-fill">hub</span>
+            </div>
+            <span class="font-display font-bold text-xl text-primary-deep">Werkbase</span>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-3">
+            <a href="{% url 'candidate_login' %}" class="px-4 py-2 rounded-xl text-sm font-semibold text-primary hover:bg-primary-soft transition">Candidate Login</a>
+            <a href="{% url 'company_login' %}" class="px-4 py-2 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary-dark transition shadow-sm">Employee Login</a>
+        </div>
     </nav>
 
-    <header class="landing-hero">
-        <h1 class="tagline">Recruitment <span>Revamped</span></h1>
-        <p>Werkbase brings vacancy requests, job postings, candidate applications, and interviews into one internal platform — built for how your HR team actually works.</p>
-        <div class="landing-cta">
-            <a href="{% url 'candidate_login' %}" class="btn-primary">I'm a Candidate</a>
-            <a href="{% url 'company_login' %}" class="btn-secondary" style="text-decoration:none;">Employee Login</a>
+    <!-- Hero -->
+    <header class="flex-1 flex flex-col items-center justify-center text-center px-5 py-16 max-w-3xl mx-auto">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-soft text-accent text-xs font-semibold mb-6">
+            <span class="material-symbols-outlined text-[15px]">bolt</span> Internal Talent Platform
+        </span>
+        <h1 class="font-display font-bold text-5xl sm:text-6xl text-primary-deep leading-[1.05] tracking-tight">
+            Recruitment <span class="text-accent italic">Revamped</span>
+        </h1>
+        <p class="text-lg text-muted mt-6 leading-relaxed max-w-2xl">
+            Werkbase brings vacancy requests, job postings, candidate applications, resume scoring and interviews into one internal platform — built for how your HR team actually works.
+        </p>
+        <div class="flex flex-col sm:flex-row items-center gap-3 mt-9">
+            <a href="{% url 'candidate_login' %}" class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition shadow-sm">I'm a Candidate</a>
+            <a href="{% url 'company_login' %}" class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-surface border border-border text-primary-deep font-semibold hover:bg-surface-alt transition">Employee Login</a>
         </div>
     </header>
 
-    <section class="landing-features">
-        <div class="landing-feature-card">
-            <p class="feature-title">Raise &amp; Post</p>
-            <p class="feature-desc">Hiring Managers raise vacancy requests; HR Recruiters turn them into live job postings.</p>
+    <!-- Feature strip -->
+    <section class="max-w-6xl mx-auto w-full px-5 pb-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-5 rounded-2xl bg-surface border border-border">
+            <span class="w-10 h-10 rounded-xl bg-primary-soft text-primary flex items-center justify-center mb-3"><span class="material-symbols-outlined">post_add</span></span>
+            <p class="font-semibold text-on-surface mb-1">Raise &amp; Post</p>
+            <p class="text-sm text-muted leading-relaxed">Hiring Managers raise vacancy requests; HR Recruiters turn them into live job postings.</p>
         </div>
-        <div class="landing-feature-card">
-            <p class="feature-title">Apply &amp; Track</p>
-            <p class="feature-desc">Candidates browse open roles, apply with a resume, and track their application status.</p>
+        <div class="p-5 rounded-2xl bg-surface border border-border">
+            <span class="w-10 h-10 rounded-xl bg-accent-soft text-accent flex items-center justify-center mb-3"><span class="material-symbols-outlined">description</span></span>
+            <p class="font-semibold text-on-surface mb-1">Apply &amp; Track</p>
+            <p class="text-sm text-muted leading-relaxed">Candidates browse open roles, apply with a resume, and track their status live.</p>
         </div>
-        <div class="landing-feature-card">
-            <p class="feature-title">Interview</p>
-            <p class="feature-desc">Interviewers see applicants per posting and schedule interviews directly.</p>
+        <div class="p-5 rounded-2xl bg-surface border border-border">
+            <span class="w-10 h-10 rounded-xl bg-primary-soft text-primary flex items-center justify-center mb-3"><span class="material-symbols-outlined">interpreter_mode</span></span>
+            <p class="font-semibold text-on-surface mb-1">Score &amp; Interview</p>
+            <p class="text-sm text-muted leading-relaxed">Resume match scoring ranks candidates; interviewers schedule and record feedback.</p>
         </div>
-        <div class="landing-feature-card">
-            <p class="feature-title">Manage Access</p>
-            <p class="feature-desc">HR Admins control every company account from a single, secure admin view.</p>
+        <div class="p-5 rounded-2xl bg-surface border border-border">
+            <span class="w-10 h-10 rounded-xl bg-accent-soft text-accent flex items-center justify-center mb-3"><span class="material-symbols-outlined">insights</span></span>
+            <p class="font-semibold text-on-surface mb-1">Measure</p>
+            <p class="text-sm text-muted leading-relaxed">Live analytics on the funnel, time-to-hire and candidate sources across every role.</p>
         </div>
     </section>
 
-    <footer class="landing-footer">
+    <footer class="border-t border-border py-6 text-center text-sm text-muted">
         &copy; Werkbase — internal recruitment platform
     </footer>
-</body>
-</html>
+</div>
+{% endblock %}

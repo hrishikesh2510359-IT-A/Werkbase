@@ -1,157 +1,122 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Apply</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="wide-page">
-        <div class="wide-card">
-            <h1>Apply — {{ posting.job_title }}</h1>
+{% extends "base_app.html" %}
 
-            {% if form.non_field_errors %}
-                <div class="error-banner">{{ form.non_field_errors.0 }}</div>
-            {% endif %}
+{% block title %}Werkbase — Apply{% endblock %}
+{% block page_title %}Apply · {{ posting.job_title }}{% endblock %}
 
-            <!-- Security boundary: candidate is set server-side from request.user in the view,
-                 never taken from the form; duplicate applications are blocked in the view too
-                 (both a pre-check and a DB-level UniqueConstraint catch). -->
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="field">
-                    <label>Resume</label>
-                    {% if has_profile_resume %}
-                        <div class="tag-input-box" id="resume-on-file" style="justify-content:space-between; align-items:center;">
-                            <span style="font-size:0.9rem;">Use resume on file — <strong>{{ profile_resume_name }}</strong></span>
-                            <button type="button" id="resume-override-toggle" class="btn-small">Upload a different resume instead</button>
-                        </div>
-                        <div id="resume-override-field" style="display:none; margin-top:0.5rem;">
-                            {{ form.resume }}
-                        </div>
-                    {% else %}
-                        {{ form.resume }}
-                        <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.3rem 0 0;">{{ form.resume.help_text }}</p>
-                    {% endif %}
-                    {% if form.resume.errors %}<div class="notice-banner">{{ form.resume.errors.0 }}</div>{% endif %}
-                </div>
-                <div class="field">
-                    <label for="id_sop_why_role">{{ form.sop_why_role.label }}</label>
-                    {{ form.sop_why_role }}
-                    {% if form.sop_why_role.errors %}<div class="notice-banner">{{ form.sop_why_role.errors.0 }}</div>{% endif %}
-                </div>
-                <div class="field">
-                    <label for="id_sop_why_company">{{ form.sop_why_company.label }}</label>
-                    {{ form.sop_why_company }}
-                    {% if form.sop_why_company.errors %}<div class="notice-banner">{{ form.sop_why_company.errors.0 }}</div>{% endif %}
-                </div>
-                <div class="field">
-                    <label for="id_expected_salary">Expected Salary (optional)</label>
-                    {{ form.expected_salary }}
-                </div>
-                <div class="field">
-                    <label>{{ form.soft_skills.label }} (pick up to 3)</label>
-                    <div class="tag-input-box" style="flex-wrap:wrap; gap:0.5rem;">
-                        {% for checkbox in form.soft_skills %}
-                            <label style="display:flex; align-items:center; gap:0.3rem; font-size:0.85rem; font-weight:normal;">
-                                {{ checkbox.tag }} {{ checkbox.choice_label }}
-                            </label>
-                        {% endfor %}
-                    </div>
-                    {% if form.soft_skills.errors %}<div class="notice-banner">{{ form.soft_skills.errors.0 }}</div>{% endif %}
-                </div>
+{% block content %}
+<div class="max-w-3xl">
+    <div class="bg-surface border border-border rounded-2xl shadow-sm p-6">
+        {% if form.non_field_errors %}
+        <div class="mb-4 px-4 py-3 rounded-xl bg-danger-soft text-danger border border-danger/20 text-sm">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
 
-                <div class="form-section-title">Eligibility</div>
-                <div class="form-row">
-                    <div class="field">
-                        <label>{{ form.work_authorized.label }}</label>
-                        <div class="tag-input-box" style="gap:1rem;">
-                            {% for radio in form.work_authorized %}
-                                <label style="display:flex; align-items:center; gap:0.3rem; font-size:0.85rem; font-weight:normal;">{{ radio.tag }} {{ radio.choice_label }}</label>
-                            {% endfor %}
-                        </div>
-                        {% if form.work_authorized.errors %}<div class="notice-banner">{{ form.work_authorized.errors.0 }}</div>{% endif %}
-                    </div>
-                    <div class="field">
-                        <label>{{ form.requires_sponsorship.label }}</label>
-                        <div class="tag-input-box" style="gap:1rem;">
-                            {% for radio in form.requires_sponsorship %}
-                                <label style="display:flex; align-items:center; gap:0.3rem; font-size:0.85rem; font-weight:normal;">{{ radio.tag }} {{ radio.choice_label }}</label>
-                            {% endfor %}
-                        </div>
-                        {% if form.requires_sponsorship.errors %}<div class="notice-banner">{{ form.requires_sponsorship.errors.0 }}</div>{% endif %}
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="field">
-                        <label for="id_notice_period">{{ form.notice_period.label }}</label>
-                        {{ form.notice_period }}
-                    </div>
-                    {% if form.willing_to_relocate %}
-                        <div class="field">
-                            <label>{{ form.willing_to_relocate.label }}</label>
-                            <div class="tag-input-box" style="gap:1rem;">
-                                {% for radio in form.willing_to_relocate %}
-                                    <label style="display:flex; align-items:center; gap:0.3rem; font-size:0.85rem; font-weight:normal;">{{ radio.tag }} {{ radio.choice_label }}</label>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
+        <!-- Security boundary: candidate is set server-side; duplicate applications blocked
+             in the view (pre-check + DB UniqueConstraint). -->
+        <form method="post" enctype="multipart/form-data" class="wb-form">
+            {% csrf_token %}
 
-                <div class="form-section-title">Profile Links (optional)</div>
-                <div class="form-row">
-                    <div class="field">
-                        <label for="id_linkedin_url">{{ form.linkedin_url.label }}</label>
-                        {{ form.linkedin_url }}
-                        {% if form.linkedin_url.errors %}<div class="notice-banner">{{ form.linkedin_url.errors.0 }}</div>{% endif %}
+            <div class="wb-field">
+                <label>Resume</label>
+                {% if has_profile_resume %}
+                    <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-alt border border-border" id="resume-on-file">
+                        <span class="text-sm flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-primary">description</span> Use resume on file — <strong>{{ profile_resume_name }}</strong></span>
+                        <button type="button" id="resume-override-toggle" class="text-[13px] text-primary font-semibold hover:underline shrink-0">Upload a different one</button>
                     </div>
-                    <div class="field">
-                        <label for="id_portfolio_url">{{ form.portfolio_url.label }}</label>
-                        {{ form.portfolio_url }}
-                        {% if form.portfolio_url.errors %}<div class="notice-banner">{{ form.portfolio_url.errors.0 }}</div>{% endif %}
-                    </div>
-                </div>
+                    <div id="resume-override-field" class="hidden mt-2">{{ form.resume }}</div>
+                {% else %}
+                    {{ form.resume }}
+                    <p class="text-[12px] text-muted mt-1">{{ form.resume.help_text }}</p>
+                {% endif %}
+                {% if form.resume.errors %}<p class="text-[12px] text-danger mt-1">{{ form.resume.errors.0 }}</p>{% endif %}
+            </div>
 
-                <div class="form-section-title">How You Found This Role</div>
-                <div class="form-row">
-                    <div class="field">
-                        <label for="id_referral_source">{{ form.referral_source.label }}</label>
-                        {{ form.referral_source }}
-                    </div>
-                    <div class="field">
-                        <label for="id_referred_by">{{ form.referred_by.label }}</label>
-                        {{ form.referred_by }}
-                    </div>
+            <div class="wb-field">
+                <label for="id_sop_why_role">{{ form.sop_why_role.label }}</label>{{ form.sop_why_role }}
+                {% if form.sop_why_role.errors %}<p class="text-[12px] text-danger mt-1">{{ form.sop_why_role.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="wb-field">
+                <label for="id_sop_why_company">{{ form.sop_why_company.label }}</label>{{ form.sop_why_company }}
+                {% if form.sop_why_company.errors %}<p class="text-[12px] text-danger mt-1">{{ form.sop_why_company.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="wb-field">
+                <label for="id_expected_salary">Expected Salary (optional)</label>{{ form.expected_salary }}
+            </div>
+            <div class="wb-field">
+                <label>{{ form.soft_skills.label }} <span class="text-muted font-normal">(pick up to 3)</span></label>
+                <div class="flex flex-wrap gap-2">
+                    {% for checkbox in form.soft_skills %}
+                        <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-surface-alt text-[13px] font-normal cursor-pointer hover:bg-primary-soft transition">
+                            {{ checkbox.tag }} {{ checkbox.choice_label }}
+                        </label>
+                    {% endfor %}
                 </div>
+                {% if form.soft_skills.errors %}<p class="text-[12px] text-danger mt-1">{{ form.soft_skills.errors.0 }}</p>{% endif %}
+            </div>
 
-                <div class="form-actions">
-                    <button type="submit" class="btn-primary">Submit Application</button>
-                    <a href="{% url 'job_detail' posting.pk %}" class="btn-secondary" style="text-decoration:none; text-align:center;">Cancel</a>
+            <p class="font-display font-semibold text-primary-deep mt-6 mb-3 pb-2 border-b border-border">Eligibility</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="wb-field">
+                    <label>{{ form.work_authorized.label }}</label>
+                    <div class="flex gap-3">{% for radio in form.work_authorized %}<label class="flex items-center gap-1.5 text-sm font-normal">{{ radio.tag }} {{ radio.choice_label }}</label>{% endfor %}</div>
+                    {% if form.work_authorized.errors %}<p class="text-[12px] text-danger mt-1">{{ form.work_authorized.errors.0 }}</p>{% endif %}
                 </div>
-            </form>
-        </div>
+                <div class="wb-field">
+                    <label>{{ form.requires_sponsorship.label }}</label>
+                    <div class="flex gap-3">{% for radio in form.requires_sponsorship %}<label class="flex items-center gap-1.5 text-sm font-normal">{{ radio.tag }} {{ radio.choice_label }}</label>{% endfor %}</div>
+                    {% if form.requires_sponsorship.errors %}<p class="text-[12px] text-danger mt-1">{{ form.requires_sponsorship.errors.0 }}</p>{% endif %}
+                </div>
+                <div class="wb-field">
+                    <label for="id_notice_period">{{ form.notice_period.label }}</label>{{ form.notice_period }}
+                </div>
+                {% if form.willing_to_relocate %}
+                <div class="wb-field">
+                    <label>{{ form.willing_to_relocate.label }}</label>
+                    <div class="flex gap-3">{% for radio in form.willing_to_relocate %}<label class="flex items-center gap-1.5 text-sm font-normal">{{ radio.tag }} {{ radio.choice_label }}</label>{% endfor %}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <p class="font-display font-semibold text-primary-deep mt-6 mb-3 pb-2 border-b border-border">Profile Links <span class="text-muted text-sm font-normal">(optional)</span></p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="wb-field">
+                    <label for="id_linkedin_url">{{ form.linkedin_url.label }}</label>{{ form.linkedin_url }}
+                    {% if form.linkedin_url.errors %}<p class="text-[12px] text-danger mt-1">{{ form.linkedin_url.errors.0 }}</p>{% endif %}
+                </div>
+                <div class="wb-field">
+                    <label for="id_portfolio_url">{{ form.portfolio_url.label }}</label>{{ form.portfolio_url }}
+                    {% if form.portfolio_url.errors %}<p class="text-[12px] text-danger mt-1">{{ form.portfolio_url.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <p class="font-display font-semibold text-primary-deep mt-6 mb-3 pb-2 border-b border-border">How You Found This Role</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="wb-field"><label for="id_referral_source">{{ form.referral_source.label }}</label>{{ form.referral_source }}</div>
+                <div class="wb-field"><label for="id_referred_by">{{ form.referred_by.label }}</label>{{ form.referred_by }}</div>
+            </div>
+
+            <div class="mt-6 flex gap-3">
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition shadow-sm">Submit Application</button>
+                <a href="{% url 'job_detail' posting.pk %}" class="px-6 py-2.5 rounded-xl border border-border text-on-surface font-medium hover:bg-surface-alt transition">Cancel</a>
+            </div>
+        </form>
     </div>
-    <script>
-        // Resume defaults to the one on file; only reveal the upload field if the
-        // candidate explicitly asks to override it for this specific application.
-        var overrideToggle = document.getElementById('resume-override-toggle');
-        if (overrideToggle) {
-            overrideToggle.addEventListener('click', function () {
-                document.getElementById('resume-override-field').style.display = 'block';
-                document.getElementById('resume-on-file').style.display = 'none';
-            });
-        }
+</div>
 
-        // Soft client-side cap at 3; the real enforcement is server-side in ApplicationForm.clean_soft_skills.
-        var boxes = document.querySelectorAll('input[name="soft_skills"]');
-        boxes.forEach(function (box) {
-            box.addEventListener('change', function () {
-                var checked = Array.prototype.filter.call(boxes, function (b) { return b.checked; });
-                boxes.forEach(function (b) { b.disabled = checked.length >= 3 && !b.checked; });
-            });
+<script>
+    var overrideToggle = document.getElementById('resume-override-toggle');
+    if (overrideToggle) {
+        overrideToggle.addEventListener('click', function () {
+            document.getElementById('resume-override-field').classList.remove('hidden');
+            document.getElementById('resume-on-file').classList.add('hidden');
         });
-    </script>
-</body>
-</html>
+    }
+    // Soft client-side cap at 3; real enforcement is server-side.
+    var boxes = document.querySelectorAll('input[name="soft_skills"]');
+    boxes.forEach(function (box) {
+        box.addEventListener('change', function () {
+            var checked = Array.prototype.filter.call(boxes, function (b) { return b.checked; });
+            boxes.forEach(function (b) { b.disabled = checked.length >= 3 && !b.checked; });
+        });
+    });
+</script>
+{% endblock %}

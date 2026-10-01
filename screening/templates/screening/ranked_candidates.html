@@ -1,126 +1,74 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Ranked Candidates</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="dash-page">
-        <div class="dash-header">
-            <div class="dash-welcome">
-                <h1>Ranked Candidates</h1>
-                <span class="role-pill">{{ posting.job_title }}</span>
-            </div>
-            <div class="record-actions">
-                {% if reveal %}
-                    <a href="{% url 'ranked_candidates' posting.pk %}" class="btn-logout">Hide identities</a>
-                {% else %}
-                    <a href="{% url 'ranked_candidates' posting.pk %}?reveal=1" class="btn-logout">Reveal identities</a>
+{% extends "base_app.html" %}
+
+{% block title %}Werkbase — Ranked Candidates{% endblock %}
+{% block page_title %}Ranked Candidates{% endblock %}
+{% block page_subtitle %}<p class="text-[12px] text-muted">{{ posting.job_title }}</p>{% endblock %}
+{% block topbar_actions %}
+{% if reveal %}
+    <a href="{% url 'ranked_candidates' posting.pk %}" class="px-3.5 py-2 rounded-lg border border-border text-sm font-medium text-on-surface hover:bg-surface-alt transition">Hide identities</a>
+{% else %}
+    <a href="{% url 'ranked_candidates' posting.pk %}?reveal=1" class="px-3.5 py-2 rounded-lg border border-border text-sm font-medium text-on-surface hover:bg-surface-alt transition">Reveal identities</a>
+{% endif %}
+<form method="post" action="{% url 'recompute_scores' posting.pk %}">{% csrf_token %}<button class="px-3.5 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition shadow-sm">Recompute</button></form>
+{% endblock %}
+
+{% block content %}
+{% if job_has_no_required_skills %}
+<div class="mb-4 px-4 py-3 rounded-xl bg-danger-soft text-danger border border-danger/20 text-sm">This posting has no required skills set, so every applicant scores 0. Add required skills to the posting, then recompute.</div>
+{% endif %}
+{% if not reveal %}
+<div class="mb-4 flex items-start gap-2 px-4 py-3 rounded-xl bg-primary-soft text-primary-deep text-sm">
+    <span class="material-symbols-outlined text-[18px] text-primary">visibility_off</span>
+    <span>Names are hidden for this first pass to reduce bias. Scores and skills are unaffected — identity is shown once a candidate is shortlisted or rejected.</span>
+</div>
+{% endif %}
+
+<div class="space-y-3">
+    {% for row in rows %}
+    {% with app=row.application %}
+    <div class="bg-surface border border-border rounded-2xl shadow-sm p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+                <p class="font-semibold text-on-surface">{% if row.show_identity %}{{ app.candidate.full_name }}{% else %}Candidate #{{ app.id }}{% endif %}</p>
+                {% if app.fit_tier %}
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold {% if app.fit_tier == 'strong' %}bg-accent-soft text-accent{% elif app.fit_tier == 'potential' %}bg-primary-soft text-primary-deep{% else %}bg-surface-alt text-muted border border-border{% endif %}">{{ row.tier_label }}</span>
                 {% endif %}
-                <form method="post" action="{% url 'recompute_scores' posting.pk %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-logout">Recompute scores</button>
-                </form>
-                <a href="{% url 'job_posting_list' %}" class="btn-logout">Back to Postings</a>
+                {% include "_status_badge.html" with status=app.status label=app.get_status_display %}
             </div>
-        </div>
 
-        {% if messages %}
-            {% for message in messages %}
-                <div class="notice-strip">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-
-        {% if job_has_no_required_skills %}
-            <div class="error-banner">
-                This posting has no required skills set, so every applicant scores 0.
-                Add required skills to the posting, then recompute.
-            </div>
-        {% endif %}
-
-        {% if not reveal %}
-            <div class="notice-strip">
-                Names are hidden for this first pass to reduce bias. Scores and skills are unaffected.
-                Identity is always shown once a candidate has been shortlisted or rejected.
-            </div>
-        {% endif %}
-
-        <div class="record-list">
-            {% for row in rows %}
-                {% with app=row.application %}
-                <div class="record-row">
-                    <div style="flex:1; min-width:260px;">
-                        <p class="record-title">
-                            {% if row.show_identity %}
-                                {{ app.candidate.full_name }}
-                            {% else %}
-                                Candidate #{{ app.id }}
-                            {% endif %}
-                            {% if app.fit_tier %}
-                                <span class="tier-chip tier-{{ app.fit_tier }}">{{ row.tier_label }}</span>
-                            {% endif %}
-                            <span class="status-badge status-{{ app.status|lower }}">{{ app.get_status_display }}</span>
-                        </p>
-
-                        <div style="display:flex; align-items:center; gap:0.6rem; margin:0.4rem 0;">
-                            <div class="score-bar">
-                                <div class="score-bar-fill" style="width:{{ app.match_score|default_if_none:0 }}%;"></div>
-                            </div>
-                            {# default_if_none, not default: a real 0.0 score must not render as "not scored" #}
-                            <span class="score-value">
-                                {% if app.match_score is None %}Not scored{% else %}{{ app.match_score }}%{% endif %}
-                            </span>
-                        </div>
-
-                        <p class="record-meta">
-                            {{ app.matched_skills|length }} matched ·
-                            {{ app.missing_skills|length }} missing ·
-                            {{ app.bonus_skills|length }} bonus
-                            {% if row.experience %}
-                                · <span class="verdict-badge verdict-{{ row.experience.verdict }}">Exp: {{ row.experience.verdict }}</span>
-                            {% endif %}
-                            {% if row.education %}
-                                <span class="verdict-badge verdict-{{ row.education.verdict }}">Edu: {{ row.education.verdict }}</span>
-                            {% endif %}
-                            {% if app.low_signal %}
-                                <span class="low-signal-flag">⚠ Low signal — review manually</span>
-                            {% endif %}
-                        </p>
-                        {% if row.interview %}
-                            {# Read-only: interviewers schedule, recruiters just see status. #}
-                            <p class="record-meta">
-                                Interview {{ row.interview.scheduled_at|date:"d M Y" }} at
-                                {{ row.interview.scheduled_at|time:"g:i A" }}
-                                {% if row.show_identity %}with {{ row.interview.interviewer.full_name }}{% endif %}
-                            </p>
-                        {% endif %}
-                    </div>
-
-                    <div class="record-actions">
-                        <a href="{% url 'score_card' app.pk %}" class="btn-small">View score card</a>
-                        {% if app.status == 'APPLIED' %}
-                            <form method="post" action="{% url 'update_application_status' app.pk 'shortlist' %}">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-small">Shortlist</button>
-                            </form>
-                            <form method="post" action="{% url 'update_application_status' app.pk 'reject' %}">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-small">Reject</button>
-                            </form>
-                        {% endif %}
-                    </div>
+            <div class="flex items-center gap-3 my-2 max-w-md">
+                <div class="flex-1 h-2 rounded-full bg-surface-alt overflow-hidden">
+                    <div class="h-full rounded-full bg-primary" style="width:{{ app.match_score|default_if_none:0 }}%;"></div>
                 </div>
-                {% endwith %}
-            {% empty %}
-                <p class="empty-state">No applications for this posting yet.</p>
-            {% endfor %}
+                <span class="stat-num text-lg text-on-surface">{% if app.match_score is None %}—{% else %}{{ app.match_score }}%{% endif %}</span>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 text-[12px]">
+                <span class="text-accent font-semibold">{{ app.matched_skills|length }} matched</span>
+                <span class="text-danger font-semibold">{{ app.missing_skills|length }} missing</span>
+                <span class="text-muted">{{ app.bonus_skills|length }} bonus</span>
+                {% if row.experience %}<span class="px-2 py-0.5 rounded-md border {% if row.experience.verdict == 'pass' %}border-accent text-accent{% elif row.experience.verdict == 'fail' %}border-danger text-danger{% else %}border-border text-muted{% endif %}">Exp: {{ row.experience.verdict }}</span>{% endif %}
+                {% if row.education %}<span class="px-2 py-0.5 rounded-md border {% if row.education.verdict == 'pass' %}border-accent text-accent{% elif row.education.verdict == 'fail' %}border-danger text-danger{% else %}border-border text-muted{% endif %}">Edu: {{ row.education.verdict }}</span>{% endif %}
+                {% if app.low_signal %}<span class="px-2 py-0.5 rounded-md bg-warning-soft text-warning font-semibold">⚠ Low signal — review manually</span>{% endif %}
+            </div>
+            {% if row.interview %}
+            <p class="text-[12px] text-primary-deep mt-1.5 flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">event</span> Interview {{ row.interview.scheduled_at|date:"d M Y" }} at {{ row.interview.scheduled_at|time:"g:i A" }}{% if row.show_identity %} with {{ row.interview.interviewer.full_name }}{% endif %}</p>
+            {% endif %}
         </div>
 
-        <p class="dash-footer-note">
-            Scores are advisory only — they never shortlist or reject anyone automatically.
-        </p>
+        <div class="flex items-center gap-2 shrink-0">
+            <a href="{% url 'score_card' app.pk %}" class="px-3 py-1.5 rounded-lg border border-border text-[13px] font-medium hover:bg-surface-alt transition">Score card</a>
+            {% if app.status == 'APPLIED' %}
+                <form method="post" action="{% url 'update_application_status' app.pk 'shortlist' %}">{% csrf_token %}<button class="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px] font-semibold hover:opacity-90 transition">Shortlist</button></form>
+                <form method="post" action="{% url 'update_application_status' app.pk 'reject' %}">{% csrf_token %}<button class="px-3 py-1.5 rounded-lg border border-border text-muted text-[13px] font-medium hover:bg-danger-soft hover:text-danger transition">Reject</button></form>
+            {% endif %}
+        </div>
     </div>
-</body>
-</html>
+    {% endwith %}
+    {% empty %}
+    <div class="bg-surface border border-border rounded-2xl p-12 text-center"><span class="material-symbols-outlined text-[40px] text-border">group</span><p class="text-sm text-muted mt-2">No applications for this posting yet.</p></div>
+    {% endfor %}
+</div>
+
+<p class="text-center text-[12px] text-muted mt-6">Scores are advisory only — they never shortlist or reject anyone automatically.</p>
+{% endblock %}

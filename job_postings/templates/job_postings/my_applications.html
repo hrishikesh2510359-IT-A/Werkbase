@@ -1,61 +1,41 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — My Applications</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="dash-page">
-        <div class="dash-header">
-            <div class="dash-welcome">
-                <h1>My Applications</h1>
-            </div>
-            <div>
-                <a href="{% url 'browse_jobs' %}" class="btn-logout" style="margin-right:0.5rem;">Browse Jobs</a>
-                <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
-            </div>
+{% extends "base_app.html" %}
+
+{% block title %}Werkbase — My Applications{% endblock %}
+{% block page_title %}My Applications{% endblock %}
+{% block topbar_actions %}
+<a href="{% url 'browse_jobs' %}" class="hidden sm:inline-flex px-3.5 py-2 rounded-lg border border-border text-sm font-medium text-on-surface hover:bg-surface-alt transition">Browse Jobs</a>
+{% endblock %}
+
+{% block content %}
+<div class="bg-surface border border-border rounded-2xl shadow-sm divide-y divide-border">
+    {% for app in applications %}
+    <div class="px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="min-w-0">
+            <p class="font-semibold text-on-surface">{{ app.job_posting.job_title }}</p>
+            <p class="text-[13px] text-muted">Applied {{ app.applied_at|date:"M j, Y" }}</p>
+            {% for iv in app.interviews.all %}{% if iv.status == 'SCHEDULED' %}
+                <p class="text-[13px] text-primary-deep font-medium mt-1 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">calendar_month</span>
+                    Interview: {{ iv.scheduled_at|date:"D, d M Y" }} at {{ iv.scheduled_at|time:"g:i A" }}
+                </p>
+            {% endif %}{% endfor %}
         </div>
-
-        {% if messages %}
-            {% for message in messages %}
-                <div class="notice-strip">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-
-        <div class="record-list">
-            {% for app in applications %}
-                <div class="record-row">
-                    <div style="flex:1; min-width:240px;">
-                        <p class="record-title">{{ app.job_posting.job_title }}</p>
-                        <p class="record-meta">Applied {{ app.applied_at|date:"M j, Y" }}</p>
-                        {% for iv in app.interviews.all %}
-                            {% if iv.status == 'SCHEDULED' %}
-                                <p class="record-meta">
-                                    Interview: {{ iv.scheduled_at|date:"D, d M Y" }} at {{ iv.scheduled_at|time:"g:i A" }}
-                                </p>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                    <div class="record-actions">
-                        {% for iv in app.interviews.all %}
-                            {% if iv.status == 'SCHEDULED' and iv.meet_link %}
-                                {% if iv.is_join_window_open %}
-                                    <a href="{{ iv.meet_link }}" target="_blank" rel="noopener" class="btn-small">Join Interview</a>
-                                {% else %}
-                                    {# Link is visible but not live until the slot is close. #}
-                                    <span class="record-meta">Join link opens 10 min before</span>
-                                {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                        <span class="status-badge status-{{ app.status|lower }}">{{ app.get_status_display }}</span>
-                    </div>
-                </div>
-            {% empty %}
-                <p class="empty-state">You haven't applied to any jobs yet.</p>
-            {% endfor %}
+        <div class="flex items-center gap-3">
+            {% for iv in app.interviews.all %}{% if iv.status == 'SCHEDULED' and iv.meet_link %}
+                {% if iv.is_join_window_open %}
+                    <a href="{{ iv.meet_link }}" target="_blank" rel="noopener" class="px-3 py-1.5 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primary-dark transition flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">videocam</span> Join</a>
+                {% else %}
+                    <span class="text-[12px] text-muted">Join opens 10 min before</span>
+                {% endif %}
+            {% endif %}{% endfor %}
+            {% include "_status_badge.html" with status=app.status label=app.get_status_display %}
         </div>
     </div>
-</body>
-</html>
+    {% empty %}
+    <div class="px-5 py-12 text-center">
+        <span class="material-symbols-outlined text-[40px] text-border">description</span>
+        <p class="text-sm text-muted mt-2">You haven't applied to any jobs yet.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

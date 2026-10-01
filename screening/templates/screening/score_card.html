@@ -1,119 +1,72 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Score Card</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="wide-page">
-        <div class="wide-card">
-            <h1>
-                {{ application.candidate.full_name }}
-                {% if application.fit_tier %}
-                    <span class="tier-chip tier-{{ application.fit_tier }}">{{ tier_label }}</span>
-                {% endif %}
-            </h1>
-            <p class="record-meta">
-                Applied to {{ posting.job_title }} on {{ application.applied_at|date:"M j, Y" }}
-                · <span class="status-badge status-{{ application.status|lower }}">{{ application.get_status_display }}</span>
-            </p>
+{% extends "base_app.html" %}
 
-            {% if application.low_signal %}
-                <div class="notice-strip" style="margin-top:1rem;">
-                    ⚠ Low signal — we parsed very few skills from this resume, so the score may
-                    understate this candidate. Review the resume manually before deciding.
-                </div>
+{% block title %}Werkbase — Score Card{% endblock %}
+{% block page_title %}{{ application.candidate.full_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+    <div class="bg-surface border border-border rounded-2xl shadow-sm p-6">
+        <div class="flex items-center gap-2 flex-wrap">
+            {% if application.fit_tier %}
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold {% if application.fit_tier == 'strong' %}bg-accent-soft text-accent{% elif application.fit_tier == 'potential' %}bg-primary-soft text-primary-deep{% else %}bg-surface-alt text-muted border border-border{% endif %}">{{ tier_label }}</span>
             {% endif %}
+            {% include "_status_badge.html" with status=application.status label=application.get_status_display %}
+        </div>
+        <p class="text-sm text-muted mt-2">Applied to {{ posting.job_title }} on {{ application.applied_at|date:"M j, Y" }}</p>
 
-            <div class="form-section-title">Match Score</div>
-            <div style="display:flex; align-items:center; gap:0.75rem;">
-                <div class="score-bar" style="width:240px;">
-                    <div class="score-bar-fill" style="width:{{ application.match_score|default_if_none:0 }}%;"></div>
-                </div>
-                {# default_if_none, not default: a real 0.0 score must not render as "not scored" #}
-                <span class="score-value">
-                    {% if application.match_score is None %}Not scored{% else %}{{ application.match_score }}%{% endif %}
-                </span>
-            </div>
-            <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.4rem 0 0;">
-                Skills only. Experience and education are reported separately below and are
-                deliberately not folded into this percentage.
+        {% if application.low_signal %}
+        <div class="mt-4 flex items-start gap-2 px-4 py-3 rounded-xl bg-warning-soft text-warning border border-warning/25 text-sm">
+            <span class="material-symbols-outlined text-[18px]">warning</span>
+            <span>Low signal — we parsed very few skills from this resume, so the score may understate this candidate. Review the resume manually before deciding.</span>
+        </div>
+        {% endif %}
+
+        <p class="font-display font-semibold text-primary-deep mt-6 mb-2">Match Score</p>
+        <div class="flex items-center gap-3 max-w-md">
+            <div class="flex-1 h-2.5 rounded-full bg-surface-alt overflow-hidden"><div class="h-full rounded-full bg-primary" style="width:{{ application.match_score|default_if_none:0 }}%;"></div></div>
+            <span class="stat-num text-xl text-on-surface">{% if application.match_score is None %}—{% else %}{{ application.match_score }}%{% endif %}</span>
+        </div>
+        <p class="text-[12px] text-muted mt-1.5">Skills only. Experience and education are reported separately below, not folded into this percentage.</p>
+
+        <p class="font-display font-semibold text-primary-deep mt-6 mb-2">Matched ✓</p>
+        <div class="flex flex-wrap gap-2">
+            {% for match in application.matched_skills %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-accent-soft text-accent text-[13px] font-semibold">{{ match.job_skill }}{% if match.similarity < 100 %}<span class="font-normal opacity-80">≈ {{ match.candidate_skill }}</span>{% endif %}</span>
+            {% empty %}<span class="text-sm text-muted">No required skills matched.</span>{% endfor %}
+        </div>
+
+        <p class="font-display font-semibold text-primary-deep mt-5 mb-2">Missing ✗ <span class="text-sm text-muted font-normal">(required)</span></p>
+        <div class="flex flex-wrap gap-2">
+            {% for skill in application.missing_skills %}<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-danger-soft text-danger text-[13px] font-semibold">{{ skill }}</span>{% empty %}<span class="text-sm text-muted">Nothing missing — all required skills matched.</span>{% endfor %}
+        </div>
+
+        <p class="font-display font-semibold text-primary-deep mt-5 mb-2">Bonus ★ <span class="text-sm text-muted font-normal">(nice-to-have)</span></p>
+        <div class="flex flex-wrap gap-2">
+            {% for match in application.bonus_skills %}<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary-soft text-primary-deep text-[13px] font-semibold">{{ match.job_skill }}{% if match.similarity < 100 %}<span class="font-normal opacity-80">≈ {{ match.candidate_skill }}</span>{% endif %}</span>{% empty %}<span class="text-sm text-muted">No nice-to-have skills matched.</span>{% endfor %}
+        </div>
+
+        <p class="font-display font-semibold text-primary-deep mt-6 mb-2">Experience &amp; Education</p>
+        <div class="flex flex-col gap-2">
+            <p class="text-sm flex items-center gap-2 flex-wrap">
+                <span class="px-2 py-0.5 rounded-md border text-[12px] font-semibold {% if experience.verdict == 'pass' %}border-accent text-accent{% elif experience.verdict == 'fail' %}border-danger text-danger{% else %}border-border text-muted{% endif %}">Experience: {{ experience.verdict }}</span>
+                {% if experience.years is not None %}<span class="text-muted">~{{ experience.years }} yr detected, {{ experience.required }} required</span>{% elif experience.verdict == 'unknown' %}<span class="text-muted">Couldn't determine from the resume — check manually</span>{% endif %}
             </p>
-
-            <div class="form-section-title">Matched ✓</div>
-            <div class="skill-chip-row">
-                {% for match in application.matched_skills %}
-                    <span class="tag-chip">
-                        {{ match.job_skill }}
-                        {% if match.similarity < 100 %}
-                            <span style="font-weight:normal;">≈ {{ match.candidate_skill }}</span>
-                        {% endif %}
-                    </span>
-                {% empty %}
-                    <span class="empty-state" style="padding:0;">No required skills matched.</span>
-                {% endfor %}
-            </div>
-
-            <div class="form-section-title">Missing ✗ (required)</div>
-            <div class="skill-chip-row">
-                {% for skill in application.missing_skills %}
-                    <span class="skill-chip-missing">{{ skill }}</span>
-                {% empty %}
-                    <span class="empty-state" style="padding:0;">Nothing missing — all required skills matched.</span>
-                {% endfor %}
-            </div>
-
-            <div class="form-section-title">Bonus ★ (nice-to-have)</div>
-            <div class="skill-chip-row">
-                {% for match in application.bonus_skills %}
-                    <span class="skill-chip-bonus">
-                        {{ match.job_skill }}
-                        {% if match.similarity < 100 %}
-                            <span style="font-weight:normal;">≈ {{ match.candidate_skill }}</span>
-                        {% endif %}
-                    </span>
-                {% empty %}
-                    <span class="empty-state" style="padding:0;">No nice-to-have skills matched.</span>
-                {% endfor %}
-            </div>
-
-            <div class="form-section-title">Experience &amp; Education</div>
-            <p style="margin:0 0 0.5rem;">
-                <span class="verdict-badge verdict-{{ experience.verdict }}">Experience: {{ experience.verdict }}</span>
-                {% if experience.years is not None %}
-                    <span class="record-meta">~{{ experience.years }} yr detected, {{ experience.required }} required</span>
-                {% elif experience.verdict == 'unknown' %}
-                    <span class="record-meta">Couldn't determine from the resume — check manually</span>
-                {% endif %}
+            <p class="text-sm flex items-center gap-2 flex-wrap">
+                <span class="px-2 py-0.5 rounded-md border text-[12px] font-semibold {% if education.verdict == 'pass' %}border-accent text-accent{% elif education.verdict == 'fail' %}border-danger text-danger{% else %}border-border text-muted{% endif %}">Education: {{ education.verdict }}</span>
+                <span class="text-muted">{{ education.required }} required</span>
             </p>
-            <p style="margin:0;">
-                <span class="verdict-badge verdict-{{ education.verdict }}">Education: {{ education.verdict }}</span>
-                <span class="record-meta">{{ education.required }} required</span>
-            </p>
+        </div>
 
-            <div class="form-section-title">Resume</div>
-            {% if application.resume %}
-                <p style="margin:0;"><a href="{{ application.resume.url }}" style="color:var(--color-primary);">Open submitted resume</a></p>
-            {% else %}
-                <p class="empty-state" style="padding:0;">No resume on this application.</p>
+        <p class="font-display font-semibold text-primary-deep mt-6 mb-2">Resume</p>
+        {% if application.resume %}<a href="{{ application.resume.url }}" class="inline-flex items-center gap-1.5 text-primary font-medium hover:underline"><span class="material-symbols-outlined text-[18px]">description</span> Open submitted resume</a>{% else %}<p class="text-sm text-muted">No resume on this application.</p>{% endif %}
+
+        <div class="mt-6 pt-4 border-t border-border flex flex-wrap gap-3">
+            {% if application.status == 'APPLIED' %}
+                <form method="post" action="{% url 'update_application_status' application.pk 'shortlist' %}">{% csrf_token %}<button class="px-6 py-2.5 rounded-xl bg-accent text-white font-semibold hover:opacity-90 transition shadow-sm">Shortlist</button></form>
+                <form method="post" action="{% url 'update_application_status' application.pk 'reject' %}">{% csrf_token %}<button class="px-6 py-2.5 rounded-xl border border-border text-muted font-medium hover:bg-danger-soft hover:text-danger transition">Reject</button></form>
             {% endif %}
-
-            <div class="form-actions">
-                {% if application.status == 'APPLIED' %}
-                    <form method="post" action="{% url 'update_application_status' application.pk 'shortlist' %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn-primary" style="width:auto; padding:0.7rem 1.5rem;">Shortlist</button>
-                    </form>
-                    <form method="post" action="{% url 'update_application_status' application.pk 'reject' %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn-secondary">Reject</button>
-                    </form>
-                {% endif %}
-                <a href="{% url 'ranked_candidates' posting.pk %}" class="btn-secondary" style="text-decoration:none; text-align:center;">Back to Ranked List</a>
-            </div>
+            <a href="{% url 'ranked_candidates' posting.pk %}" class="px-6 py-2.5 rounded-xl border border-border text-on-surface font-medium hover:bg-surface-alt transition">Back to Ranked List</a>
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

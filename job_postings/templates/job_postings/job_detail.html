@@ -1,53 +1,51 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — {{ posting.job_title }}</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="wide-page">
-        <div class="wide-card">
-            <h1>{{ posting.job_title }}</h1>
-            <p class="record-meta">{{ posting.get_department_display }} · {{ posting.get_employment_type_display }} · {{ posting.get_work_mode_display }} · {{ posting.location }}</p>
+{% extends "base_app.html" %}
 
+{% block title %}Werkbase — {{ posting.job_title }}{% endblock %}
+{% block page_title %}{{ posting.job_title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+    <div class="bg-surface border border-border rounded-2xl shadow-sm p-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <h2 class="font-display font-bold text-2xl text-primary-deep">{{ posting.job_title }}</h2>
+                <p class="text-sm text-muted mt-1">{{ posting.get_department_display }} · {{ posting.get_employment_type_display }} · {{ posting.get_work_mode_display }} · {{ posting.location }}</p>
+            </div>
             {% if already_applied %}
-                <div class="notice-strip">You've already applied to this job.</div>
+                <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent-soft text-accent text-sm font-semibold"><span class="material-symbols-outlined text-[18px]">task_alt</span> Applied</span>
             {% else %}
-                <div class="form-actions">
-                    <a href="{% url 'apply_job' posting.pk %}" class="btn-primary" style="width:auto; padding:0.7rem 1.5rem; text-decoration:none;">Apply Now</a>
-                </div>
+                <a href="{% url 'apply_job' posting.pk %}" class="px-5 py-2.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition shadow-sm">Apply Now</a>
             {% endif %}
+        </div>
 
-            <div class="form-section-title">Details</div>
-            <p><strong>Openings:</strong> {{ posting.num_openings }}</p>
-            <p><strong>Minimum Experience:</strong> {{ posting.min_experience_years }} year{{ posting.min_experience_years|pluralize }}</p>
-            <p><strong>Education Level:</strong> {{ posting.get_education_level_display }}</p>
-            {% if posting.salary_range %}<p><strong>Salary Range:</strong> {{ posting.salary_range }}</p>{% endif %}
-            {% if posting.closing_date %}<p><strong>Closing Date:</strong> {{ posting.closing_date }}</p>{% endif %}
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+            <div class="p-3 rounded-xl bg-surface-alt border border-border"><p class="text-[11px] text-muted">Openings</p><p class="font-semibold text-on-surface">{{ posting.num_openings }}</p></div>
+            <div class="p-3 rounded-xl bg-surface-alt border border-border"><p class="text-[11px] text-muted">Min Experience</p><p class="font-semibold text-on-surface">{{ posting.min_experience_years }} yr{{ posting.min_experience_years|pluralize }}</p></div>
+            <div class="p-3 rounded-xl bg-surface-alt border border-border"><p class="text-[11px] text-muted">Education</p><p class="font-semibold text-on-surface text-sm">{{ posting.get_education_level_display }}</p></div>
+            {% if posting.closing_date %}<div class="p-3 rounded-xl bg-surface-alt border border-border"><p class="text-[11px] text-muted">Closes</p><p class="font-semibold text-on-surface text-sm">{{ posting.closing_date }}</p></div>{% endif %}
+        </div>
+        {% if posting.salary_range %}<p class="text-sm text-muted mt-3">Salary Range: <span class="font-semibold text-on-surface">{{ posting.salary_range }}</span></p>{% endif %}
 
-            <div class="form-section-title">Required Skills</div>
-            <div class="tag-input-box" style="border:none; padding:0;">
-                {% for skill in posting.required_skills.all %}<span class="tag-chip">{{ skill.name }}</span>{% empty %}<span class="empty-state">None specified</span>{% endfor %}
-            </div>
+        <p class="font-display font-semibold text-primary-deep mt-6 mb-2">Required Skills</p>
+        <div class="flex flex-wrap gap-2">
+            {% for skill in posting.required_skills.all %}<span class="tag-chip">{{ skill.name }}</span>{% empty %}<span class="text-sm text-muted">None specified</span>{% endfor %}
+        </div>
 
-            {% if posting.nice_to_have_skills.all %}
-                <div class="form-section-title">Nice-to-have Skills</div>
-                <div class="tag-input-box" style="border:none; padding:0;">
-                    {% for skill in posting.nice_to_have_skills.all %}<span class="tag-chip">{{ skill.name }}</span>{% endfor %}
-                </div>
-            {% endif %}
+        {% if posting.nice_to_have_skills.all %}
+        <p class="font-display font-semibold text-primary-deep mt-5 mb-2">Nice-to-have Skills</p>
+        <div class="flex flex-wrap gap-2">
+            {% for skill in posting.nice_to_have_skills.all %}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-accent-soft text-accent text-[13px] font-semibold">{{ skill.name }}</span>{% endfor %}
+        </div>
+        {% endif %}
 
-            {% if posting.key_responsibilities %}
-                <div class="form-section-title">Key Responsibilities</div>
-                <p style="white-space:pre-line;">{{ posting.key_responsibilities }}</p>
-            {% endif %}
+        {% if posting.key_responsibilities %}
+        <p class="font-display font-semibold text-primary-deep mt-6 mb-2">Key Responsibilities</p>
+        <p class="text-sm text-on-surface leading-relaxed whitespace-pre-line">{{ posting.key_responsibilities }}</p>
+        {% endif %}
 
-            <div class="form-actions">
-                <a href="{% url 'browse_jobs' %}" class="btn-secondary" style="text-decoration:none; text-align:center;">Back to Listings</a>
-            </div>
+        <div class="mt-6 pt-4 border-t border-border">
+            <a href="{% url 'browse_jobs' %}" class="text-sm text-primary font-semibold hover:underline">&larr; Back to Listings</a>
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

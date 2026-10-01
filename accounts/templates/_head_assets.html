@@ -1,0 +1,83 @@
+{% comment %}Single source of truth for fonts, Tailwind config (blue+green palette)
+and shared styles. Included by both base_app.html (the authenticated shell) and
+base_public.html (landing + auth). Change the palette here and everything follows.{% endcomment %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    // Blue + green combination carried over from the original Werkbase
+                    // palette, on a soft neutral ground.
+                    primary:       "#2C5F7C",  // steel blue
+                    "primary-dark":"#1E4258",
+                    "primary-deep":"#14303f",  // headings on light
+                    "primary-soft":"#dbe8f0",  // light blue tint
+                    accent:        "#5f7d4f",  // olive green (slightly cleaned)
+                    "accent-soft": "#e8eedd",  // sage tint
+                    background:    "#f3f6f6",   // soft cool neutral
+                    surface:       "#ffffff",
+                    "surface-alt": "#f5f8f8",
+                    "on-surface":  "#14303f",
+                    muted:         "#5a6b73",
+                    border:        "#dbe4e6",
+                    warning:       "#b45309",
+                    "warning-soft":"#f6ecd2",
+                    danger:        "#b3261e",
+                    "danger-soft": "#f6dcd9",
+                    info:          "#2C5F7C",
+                },
+                fontFamily: {
+                    sans: ["Inter", "system-ui", "sans-serif"],
+                    display: ['"Fraunces"', "Georgia", "serif"],
+                },
+                borderRadius: { xl: "0.75rem", "2xl": "1rem" },
+            },
+        },
+    };
+</script>
+<style>
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; line-height: 1; }
+    .ms-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    body { font-family: Inter, system-ui, sans-serif; }
+    .font-display { font-optical-sizing: auto; letter-spacing: -0.01em; }
+    .stat-num { font-family: Inter, system-ui, sans-serif; font-weight: 800; letter-spacing: -0.02em; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5d1; border-radius: 4px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+
+    /* Django renders form fields as bare inputs. Wrapping a <form> in .wb-form
+       styles every control to match the design without touching forms.py. */
+    .wb-form label { display:block; font-size:0.8rem; font-weight:600; color:#5a6b73; margin-bottom:0.35rem; }
+    .wb-form input:not([type=checkbox]):not([type=radio]),
+    .wb-form select,
+    .wb-form textarea {
+        width:100%; border:1px solid #dbe4e6; border-radius:0.65rem; padding:0.6rem 0.75rem;
+        background:#fff; font-size:0.92rem; color:#14303f; transition:border-color .15s, box-shadow .15s;
+    }
+    .wb-form input:not([type=checkbox]):not([type=radio]):focus,
+    .wb-form select:focus,
+    .wb-form textarea:focus {
+        outline:none; border-color:#2C5F7C; box-shadow:0 0 0 3px rgba(44,95,124,0.14);
+    }
+    .wb-form input[type=file] {
+        width:100%; font-size:0.85rem; color:#5a6b73;
+    }
+    .wb-form input[type=file]::file-selector-button {
+        margin-right:0.75rem; padding:0.45rem 0.9rem; border:1px solid #dbe4e6; border-radius:0.55rem;
+        background:#f5f8f8; color:#14303f; font-weight:600; font-size:0.82rem; cursor:pointer;
+    }
+    .wb-field { margin-bottom:1rem; }
+    .wb-form input[type=checkbox], .wb-form input[type=radio] { accent-color:#2C5F7C; width:1rem; height:1rem; }
+
+    /* Tag-input widget (skills on profile + job posting forms). */
+    .tag-input-box { display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; padding:0.5rem; border:1px solid #dbe4e6; border-radius:0.65rem; background:#fff; }
+    .tag-input-box input[type=text] { border:none !important; outline:none; box-shadow:none !important; flex:1; min-width:120px; font-size:0.9rem; padding:0.25rem; }
+    .tag-chip { display:inline-flex; align-items:center; gap:0.35rem; background:#dbe8f0; color:#14303f; font-size:0.8rem; font-weight:600; padding:0.2rem 0.55rem; border-radius:999px; }
+    .tag-chip button { background:none; border:none; color:#2C5F7C; cursor:pointer; font-size:0.9rem; line-height:1; padding:0; }
+</style>
