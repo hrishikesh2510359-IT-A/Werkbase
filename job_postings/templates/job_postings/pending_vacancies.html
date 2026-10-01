@@ -1,38 +1,23 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Pending Vacancies</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="dash-page">
-        <div class="dash-header">
-            <div class="dash-welcome">
-                <h1>Pending Vacancies</h1>
-            </div>
-            <div>
-                <a href="{% url 'job_posting_list' %}" class="btn-logout" style="margin-right:0.5rem;">My Job Postings</a>
-                <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
-            </div>
-        </div>
+{% extends "base_app.html" %}
 
-        <div class="record-list">
-            {% for req in pending %}
-                <div class="record-row">
-                    <div>
-                        <p class="record-title">{{ req.job_title }}</p>
-                        <p class="record-meta">{{ req.get_department_display }} · {{ req.num_openings }} opening{{ req.num_openings|pluralize }} · Priority: {{ req.get_priority_display }} · Raised by {{ req.raised_by.full_name }}</p>
-                    </div>
-                    <div class="record-actions">
-                        <a href="{% url 'create_job_posting' %}?from_vacancy={{ req.pk }}" class="btn-small">Post This Job</a>
-                    </div>
-                </div>
-            {% empty %}
-                <p class="empty-state">No pending vacancy requests right now.</p>
-            {% endfor %}
+{% block title %}Werkbase — Pending Vacancies{% endblock %}
+{% block page_title %}Pending Vacancies{% endblock %}
+{% block topbar_actions %}
+<a href="{% url 'job_posting_list' %}" class="hidden sm:inline-flex px-3.5 py-2 rounded-lg border border-border text-sm font-medium text-on-surface hover:bg-surface-alt transition">My Job Postings</a>
+{% endblock %}
+
+{% block content %}
+<div class="bg-surface border border-border rounded-2xl shadow-sm divide-y divide-border">
+    {% for req in pending %}
+    <div class="px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="min-w-0">
+            <p class="font-semibold text-on-surface">{{ req.job_title }}</p>
+            <p class="text-[13px] text-muted mt-0.5">{{ req.get_department_display }} · {{ req.num_openings }} opening{{ req.num_openings|pluralize }} · {{ req.get_priority_display }} priority · by {{ req.raised_by.full_name }}</p>
         </div>
+        <a href="{% url 'create_job_posting' %}?from_vacancy={{ req.pk }}" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition shadow-sm"><span class="material-symbols-outlined text-[16px]">post_add</span> Post This Job</a>
     </div>
-</body>
-</html>
+    {% empty %}
+    <div class="px-5 py-12 text-center"><span class="material-symbols-outlined text-[40px] text-border">inbox</span><p class="text-sm text-muted mt-2">No pending vacancy requests right now.</p></div>
+    {% endfor %}
+</div>
+{% endblock %}

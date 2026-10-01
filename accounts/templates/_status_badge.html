@@ -1,0 +1,9 @@
+{% comment %}Reusable status pill. Usage:
+  {% include "_status_badge.html" with status=app.status label=app.get_status_display %}
+Maps every status code across the app (application / interview / posting / vacancy)
+to one of four semantic tones so colour stays consistent everywhere.{% endcomment %}
+<span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide
+    {% if status == 'PUBLISHED' or status == 'SELECTED' or status == 'POSTED' or status == 'COMPLETED' %}bg-accent-soft text-accent
+    {% elif status == 'REJECTED' or status == 'CANCELLED' or status == 'CLOSED' %}bg-danger-soft text-danger
+    {% elif status == 'SHORTLISTED' or status == 'INTERVIEW_SCHEDULED' or status == 'SCHEDULED' or status == 'INTERVIEWED' %}bg-primary-soft text-primary-deep
+    {% else %}bg-surface-alt text-muted border border-border{% endif %}">{{ label }}</span>

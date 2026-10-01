@@ -1,0 +1,200 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Werkbase{% endblock %}</title>
+    {% include "_head_assets.html" %}
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen">
+
+    {% with role=request.user.role %}
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside id="app-sidebar"
+           class="fixed top-0 left-0 h-screen w-64 z-40 flex flex-col justify-between bg-surface border-r border-border
+                  -translate-x-full lg:translate-x-0 transition-transform duration-200">
+        <div class="overflow-y-auto custom-scroll">
+            <!-- Brand -->
+            <div class="flex items-center gap-3 px-5 h-16 border-b border-border">
+                <div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white shadow-sm">
+                    <span class="material-symbols-outlined text-[22px] ms-fill">hub</span>
+                </div>
+                <div class="leading-tight">
+                    <p class="font-display font-extrabold text-[17px] text-primary-deep">Werkbase</p>
+                    <p class="text-[11px] text-muted">Recruitment Suite</p>
+                </div>
+            </div>
+
+            <div class="p-4">
+                <!-- Role-specific primary action -->
+                {% block sidebar_cta %}
+                    {% if role == 'HR_RECRUITER' %}
+                        <a href="{% url 'create_job_posting' %}" class="mb-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow-sm transition">
+                            <span class="material-symbols-outlined text-[18px]">add</span> Post a Job
+                        </a>
+                    {% elif role == 'HIRING_MANAGER' %}
+                        <a href="{% url 'raise_vacancy' %}" class="mb-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow-sm transition">
+                            <span class="material-symbols-outlined text-[18px]">add</span> Raise Vacancy
+                        </a>
+                    {% elif role == 'HR_ADMIN' %}
+                        <a href="{% url 'create_company_user' %}" class="mb-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow-sm transition">
+                            <span class="material-symbols-outlined text-[18px]">person_add</span> Create User
+                        </a>
+                    {% elif role == 'CANDIDATE' %}
+                        <a href="{% url 'browse_jobs' %}" class="mb-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow-sm transition">
+                            <span class="material-symbols-outlined text-[18px]">search</span> Browse Jobs
+                        </a>
+                    {% endif %}
+                {% endblock %}
+
+                <!-- Navigation -->
+                <nav class="space-y-1">
+                    {% with base="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition group" idle="text-muted hover:bg-surface-alt hover:text-on-surface" on="bg-primary-soft text-primary-deep font-semibold" un=request.resolver_match.url_name %}
+
+                    <a href="{% url 'dashboard' %}" class="{{ base }} {% if un == 'dashboard' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                        <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard</span>
+                    </a>
+
+                    {% if role == 'CANDIDATE' %}
+                        <a href="{% url 'browse_jobs' %}" class="{{ base }} {% if un == 'browse_jobs' or un == 'job_detail' or un == 'apply_job' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">work</span> Browse Jobs</span>
+                        </a>
+                        <a href="{% url 'my_applications' %}" class="{{ base }} {% if un == 'my_applications' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">description</span> My Applications</span>
+                        </a>
+                        <a href="{% url 'my_profile' %}" class="{{ base }} {% if un == 'my_profile' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">account_circle</span> My Profile</span>
+                        </a>
+                        <a href="{% url 'my_notifications' %}" class="{{ base }} {% if un == 'my_notifications' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">notifications</span> Notifications</span>
+                            {% if unread_notifications %}<span class="px-2 py-0.5 rounded-full bg-danger text-white text-[10px] font-bold">{{ unread_notifications }}</span>{% endif %}
+                        </a>
+
+                    {% elif role == 'HR_RECRUITER' %}
+                        <a href="{% url 'pending_vacancies' %}" class="{{ base }} {% if un == 'pending_vacancies' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">inbox</span> Pending Vacancies</span>
+                        </a>
+                        <a href="{% url 'job_posting_list' %}" class="{{ base }} {% if un == 'job_posting_list' or un == 'create_job_posting' or un == 'edit_job_posting' or un == 'ranked_candidates' or un == 'score_card' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">work</span> Job Postings</span>
+                        </a>
+                        <a href="{% url 'analytics_dashboard' %}" class="{{ base }} {% if un == 'analytics_dashboard' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">bar_chart</span> Analytics</span>
+                        </a>
+
+                    {% elif role == 'HIRING_MANAGER' %}
+                        <a href="{% url 'my_vacancy_requests' %}" class="{{ base }} {% if un == 'my_vacancy_requests' or un == 'raise_vacancy' or un == 'edit_vacancy_request' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">assignment</span> My Requests</span>
+                        </a>
+                        <a href="{% url 'analytics_dashboard' %}" class="{{ base }} {% if un == 'analytics_dashboard' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">bar_chart</span> Analytics</span>
+                        </a>
+
+                    {% elif role == 'INTERVIEWER' %}
+                        <a href="{% url 'my_interviews' %}" class="{{ base }} {% if un == 'my_interviews' or un == 'schedule_interview' or un == 'reschedule_interview' or un == 'submit_feedback' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">calendar_month</span> My Interviews</span>
+                        </a>
+                        <a href="{% url 'interviewer_dashboard' %}" class="{{ base }} {% if un == 'interviewer_dashboard' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">group</span> Applicants</span>
+                        </a>
+                        <a href="{% url 'analytics_dashboard' %}" class="{{ base }} {% if un == 'analytics_dashboard' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">bar_chart</span> Analytics</span>
+                        </a>
+
+                    {% elif role == 'HR_ADMIN' %}
+                        <a href="{% url 'create_company_user' %}" class="{{ base }} {% if un == 'create_company_user' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">manage_accounts</span> Manage Users</span>
+                        </a>
+                        <a href="{% url 'analytics_dashboard' %}" class="{{ base }} {% if un == 'analytics_dashboard' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">bar_chart</span> Analytics</span>
+                        </a>
+
+                    {% else %}
+                        {# HR Manager / Onboarding Coordinator: workflows arrive in a later module. #}
+                        <a href="{% url 'analytics_dashboard' %}" class="{{ base }} {% if un == 'analytics_dashboard' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">bar_chart</span> Analytics</span>
+                        </a>
+                    {% endif %}
+                    {% endwith %}
+                </nav>
+            </div>
+        </div>
+
+        <!-- Sidebar footer: identity + logout -->
+        <div class="p-4 border-t border-border">
+            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-surface-alt mb-2">
+                <div class="w-9 h-9 rounded-full bg-primary-soft text-primary-deep flex items-center justify-center font-bold text-sm">
+                    {{ request.user.full_name|slice:":1"|upper }}
+                </div>
+                <div class="leading-tight min-w-0">
+                    <p class="text-sm font-semibold text-on-surface truncate">{{ request.user.full_name }}</p>
+                    <p class="text-[11px] text-muted">{{ request.user.get_role_display }}</p>
+                </div>
+            </div>
+            <a href="{% url 'logout' %}" class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-muted hover:bg-danger-soft hover:text-danger transition">
+                <span class="material-symbols-outlined text-[20px]">logout</span> Log Out
+            </a>
+        </div>
+    </aside>
+
+    <!-- Mobile overlay -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/30 z-30 hidden lg:hidden"></div>
+
+    <!-- ===================== TOP BAR ===================== -->
+    <header class="fixed top-0 right-0 left-0 lg:left-64 h-16 z-20 bg-surface/90 backdrop-blur border-b border-border">
+        <div class="flex items-center justify-between h-full px-4 sm:px-6">
+            <div class="flex items-center gap-3 min-w-0">
+                <button id="sidebar-toggle" class="lg:hidden p-2 rounded-lg text-muted hover:bg-surface-alt">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <div class="min-w-0">
+                    <h1 class="font-display font-bold text-lg text-primary-deep truncate">{% block page_title %}Dashboard{% endblock %}</h1>
+                    {% block page_subtitle %}{% endblock %}
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                {% block topbar_actions %}{% endblock %}
+                {% if role == 'CANDIDATE' %}
+                    <a href="{% url 'my_notifications' %}" class="relative p-2 rounded-lg text-muted hover:bg-surface-alt transition">
+                        <span class="material-symbols-outlined text-[22px]">notifications</span>
+                        {% if unread_notifications %}<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-danger ring-2 ring-surface"></span>{% endif %}
+                    </a>
+                {% endif %}
+                <div class="hidden sm:flex items-center gap-2 pl-2">
+                    <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">
+                        {{ request.user.full_name|slice:":1"|upper }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===================== MAIN ===================== -->
+    <main class="lg:ml-64 pt-16 min-h-screen">
+        <div class="px-4 sm:px-6 lg:px-8 py-6 max-w-[1400px] mx-auto">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="mb-4 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-accent-soft text-primary-deep border border-accent/30 text-sm">
+                        <span class="material-symbols-outlined text-[18px] text-accent">check_circle</span>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    {% endwith %}
+
+    <script>
+        (function () {
+            var sb = document.getElementById('app-sidebar');
+            var ov = document.getElementById('sidebar-overlay');
+            var tg = document.getElementById('sidebar-toggle');
+            function open() { sb.classList.remove('-translate-x-full'); ov.classList.remove('hidden'); }
+            function close() { sb.classList.add('-translate-x-full'); ov.classList.add('hidden'); }
+            if (tg) tg.addEventListener('click', open);
+            if (ov) ov.addEventListener('click', close);
+        })();
+    </script>
+</body>
+</html>

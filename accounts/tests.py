@@ -117,8 +117,11 @@ class InterviewerDashboardRegressionTests(TestCase):
         )
 
     def test_awaiting_list_shows_shortlisted_with_schedule_action(self):
+        from job_postings.models import Application
+
         self.client.force_login(self.interviewer)
         resp = self.client.get(reverse("dashboard"))
-        self.assertContains(resp, "Short Cand")          # the schedulable candidate is listed
-        self.assertContains(resp, "Schedule Interview")  # with an actionable button
-        self.assertNotContains(resp, "Applied Cand")     # un-shortlisted ones are not in this list
+        short_app = Application.objects.get(candidate__email="s@example.com")
+        self.assertContains(resp, "Short Cand")                                   # the schedulable candidate is listed
+        self.assertContains(resp, reverse("schedule_interview", args=[short_app.pk]))  # with an actionable schedule link
+        self.assertNotContains(resp, "Applied Cand")                             # un-shortlisted ones are not in this list

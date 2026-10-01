@@ -1,226 +1,267 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Dashboard</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="dash-page">
-        <div class="dash-header">
-            <div class="dash-welcome">
-                <h1>Welcome back, {{ request.user.full_name }}</h1>
-                <span class="role-pill">{{ request.user.get_role_display }}</span>
+{% extends "base_app.html" %}
+
+{% block title %}Werkbase — Dashboard{% endblock %}
+{% block page_title %}Welcome back, {{ request.user.full_name.split.0 }}{% endblock %}
+{% block page_subtitle %}<p class="text-[12px] text-muted">{{ request.user.get_role_display }} workspace</p>{% endblock %}
+
+{% block content %}
+
+{# ---------------- KPI tiles ---------------- #}
+{% if stats %}
+<div class="grid grid-cols-2 lg:grid-cols-{{ stats|length }} gap-4 mb-6">
+    {% for stat in stats %}
+    <div class="p-5 rounded-2xl bg-surface border border-border shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-[13px] font-medium text-muted">{{ stat.label }}</span>
+            <span class="p-2 rounded-xl bg-primary-soft text-primary">
+                <span class="material-symbols-outlined text-[20px]">
+                    {% if 'interview' in stat.label|lower %}calendar_month{% elif 'applicant' in stat.label|lower or 'candidate' in stat.label|lower or 'user' in stat.label|lower %}group{% elif 'publish' in stat.label|lower or 'post' in stat.label|lower %}work{% elif 'application' in stat.label|lower %}description{% elif 'draft' in stat.label|lower or 'pending' in stat.label|lower %}pending{% else %}insights{% endif %}
+                </span>
+            </span>
+        </div>
+        <p class="stat-num text-3xl text-on-surface leading-none">{{ stat.value }}</p>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{# ==================================================================== #}
+{# INTERVIEWER — interviews front and centre, actionable on login       #}
+{# ==================================================================== #}
+{% if request.user.role == 'INTERVIEWER' %}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+    <!-- Upcoming interviews (primary) -->
+    <div class="xl:col-span-2 rounded-2xl bg-surface border border-border shadow-sm">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+            <h3 class="font-display font-bold text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">event_upcoming</span> Your Upcoming Interviews
+            </h3>
+            <a href="{% url 'my_interviews' %}" class="text-sm font-semibold text-primary hover:underline">View all</a>
+        </div>
+        <div class="divide-y divide-border">
+            {% for row in interview_rows %}
+            {% with iv=row.interview %}
+            <div class="px-5 py-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <p class="font-semibold text-on-surface">{{ iv.application.candidate.full_name }}</p>
+                            {% if iv.is_manual_link %}<span class="px-2 py-0.5 rounded-full bg-warning-soft text-warning text-[10px] font-bold">Manual link</span>{% endif %}
+                        </div>
+                        <p class="text-[13px] text-muted mt-0.5">{{ iv.application.job_posting.job_title }}</p>
+                        <p class="text-[13px] text-primary-deep font-medium mt-1 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[16px]">schedule</span>
+                            {{ iv.scheduled_at|date:"D, d M" }} · {{ iv.scheduled_at|time:"g:i A" }} <span class="text-muted font-normal">({{ iv.duration_minutes }} min)</span>
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        {% if iv.meet_link and row.can_join %}
+                            <a href="{{ iv.meet_link }}" target="_blank" rel="noopener" class="px-3 py-1.5 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primary-dark transition flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[16px]">videocam</span> Join
+                            </a>
+                        {% endif %}
+                        {% if row.can_give_feedback %}
+                            <a href="{% url 'submit_feedback' iv.pk %}" class="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px] font-semibold hover:opacity-90 transition">Feedback</a>
+                        {% endif %}
+                        <a href="{% url 'reschedule_interview' iv.pk %}" class="px-3 py-1.5 rounded-lg border border-border text-on-surface text-[13px] font-medium hover:bg-surface-alt transition">Reschedule</a>
+                        <form method="post" action="{% url 'cancel_interview' iv.pk %}" onsubmit="return confirm('Cancel this interview?');">
+                            {% csrf_token %}
+                            <button type="submit" class="px-3 py-1.5 rounded-lg border border-border text-muted text-[13px] font-medium hover:bg-danger-soft hover:text-danger transition">Cancel</button>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div>
-                {% if request.user.role == 'HR_ADMIN' %}
-                    <a href="{% url 'create_company_user' %}" class="btn-logout" style="margin-right:0.5rem;">Create User</a>
-                {% endif %}
-                {% if request.user.role != 'CANDIDATE' %}
-                    {# Link hiding is cosmetic only - the analytics view itself 403s candidates. #}
-                    <a href="{% url 'analytics_dashboard' %}" class="btn-logout" style="margin-right:0.5rem;">Analytics</a>
-                {% endif %}
-                <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
+            {% endwith %}
+            {% empty %}
+            <div class="px-5 py-10 text-center">
+                <span class="material-symbols-outlined text-[40px] text-border">event_available</span>
+                <p class="text-sm text-muted mt-2">No interviews scheduled. Shortlisted candidates ready for you appear on the right.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Ready to schedule -->
+    <div class="rounded-2xl bg-surface border border-border shadow-sm">
+        <div class="px-5 py-4 border-b border-border">
+            <h3 class="font-display font-bold text-on-surface flex items-center gap-2">
+                <span class="material-symbols-outlined text-accent">how_to_reg</span> Ready to Schedule
+            </h3>
+        </div>
+        <div class="divide-y divide-border max-h-[420px] overflow-y-auto custom-scroll">
+            {% for app in pending_applicants %}
+            <div class="px-5 py-3.5 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="font-semibold text-on-surface text-sm truncate">{{ app.candidate.full_name }}</p>
+                    <p class="text-[12px] text-muted truncate">{{ app.job_posting.job_title }}</p>
+                </div>
+                <a href="{% url 'schedule_interview' app.pk %}" class="shrink-0 px-3 py-1.5 rounded-lg bg-primary-soft text-primary-deep text-[13px] font-semibold hover:bg-primary hover:text-white transition">Schedule</a>
+            </div>
+            {% empty %}
+            <div class="px-5 py-10 text-center">
+                <p class="text-sm text-muted">No shortlisted candidates awaiting an interview.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{# ==================================================================== #}
+{# HR RECRUITER                                                          #}
+{# ==================================================================== #}
+{% elif request.user.role == 'HR_RECRUITER' %}
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+    <div class="rounded-2xl bg-surface border border-border shadow-sm">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+            <h3 class="font-display font-bold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">inbox</span> Vacancies to Post</h3>
+            <a href="{% url 'pending_vacancies' %}" class="text-sm font-semibold text-primary hover:underline">All</a>
+        </div>
+        <div class="divide-y divide-border">
+            {% for req in pending_queue %}
+            <div class="px-5 py-3.5 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="font-semibold text-on-surface text-sm truncate">{{ req.job_title }}</p>
+                    <p class="text-[12px] text-muted">{{ req.get_department_display }} · by {{ req.raised_by.full_name }}</p>
+                </div>
+                <a href="{% url 'create_job_posting' %}?from_vacancy={{ req.pk }}" class="shrink-0 px-3 py-1.5 rounded-lg bg-primary-soft text-primary-deep text-[13px] font-semibold hover:bg-primary hover:text-white transition">Post</a>
+            </div>
+            {% empty %}
+            <div class="px-5 py-10 text-center"><p class="text-sm text-muted">Nothing pending.</p></div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="rounded-2xl bg-surface border border-border shadow-sm">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+            <h3 class="font-display font-bold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">work</span> My Recent Postings</h3>
+            <a href="{% url 'job_posting_list' %}" class="text-sm font-semibold text-primary hover:underline">All</a>
+        </div>
+        <div class="divide-y divide-border">
+            {% for posting in recent_postings %}
+            <div class="px-5 py-3.5 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="font-semibold text-on-surface text-sm truncate">{{ posting.job_title }}</p>
+                    <p class="text-[12px] text-muted">{{ posting.get_department_display }} · {{ posting.location }}</p>
+                </div>
+                {% include "_status_badge.html" with status=posting.status label=posting.get_status_display %}
+            </div>
+            {% empty %}
+            <div class="px-5 py-10 text-center"><p class="text-sm text-muted">You haven't posted any jobs yet.</p></div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{# ==================================================================== #}
+{# HIRING MANAGER                                                        #}
+{# ==================================================================== #}
+{% elif request.user.role == 'HIRING_MANAGER' %}
+<div class="rounded-2xl bg-surface border border-border shadow-sm">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+        <h3 class="font-display font-bold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">assignment</span> My Vacancy Requests</h3>
+        <a href="{% url 'raise_vacancy' %}" class="text-sm font-semibold text-primary hover:underline">+ New request</a>
+    </div>
+    <div class="divide-y divide-border">
+        {% for req in recent_requests %}
+        <div class="px-5 py-3.5 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <p class="font-semibold text-on-surface text-sm truncate">{{ req.job_title }}</p>
+                <p class="text-[12px] text-muted">{{ req.get_department_display }} · {{ req.num_openings }} opening{{ req.num_openings|pluralize }} · {{ req.get_priority_display }} priority</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                {% include "_status_badge.html" with status=req.status label=req.get_status_display %}
+                {% if req.status == 'PENDING' %}<a href="{% url 'edit_vacancy_request' req.pk %}" class="px-3 py-1.5 rounded-lg border border-border text-[13px] font-medium hover:bg-surface-alt transition">Edit</a>{% endif %}
             </div>
         </div>
-
-        {% if messages %}
-            {% for message in messages %}
-                <div class="notice-strip">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-
-        {% if stats %}
-            <div class="card-grid" style="margin-bottom:1.5rem;">
-                {% for stat in stats %}
-                    <div class="stat-card">
-                        <p class="stat-value">{{ stat.value }}</p>
-                        <p class="stat-label">{{ stat.label }}</p>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-
-        {% if request.user.role == 'HIRING_MANAGER' %}
-            <div class="record-actions" style="margin-bottom:1rem;">
-                <a href="{% url 'raise_vacancy' %}" class="btn-small">Raise Vacancy Request</a>
-                <a href="{% url 'my_vacancy_requests' %}" class="btn-small">All My Requests</a>
-            </div>
-
-            <details class="wide-card" style="margin-bottom:1.25rem;">
-                <summary style="cursor:pointer; font-weight:600; color:var(--color-primary);">Pending Vacancy Requests ({{ pending_requests|length }})</summary>
-                <div class="record-list" style="margin-top:1rem;">
-                    {% for req in pending_requests %}
-                        <div class="record-row">
-                            <div>
-                                <p class="record-title">{{ req.job_title }}</p>
-                                <p class="record-meta">{{ req.get_department_display }} · Priority: {{ req.get_priority_display }}</p>
-                            </div>
-                            <a href="{% url 'edit_vacancy_request' req.pk %}" class="btn-small">Edit</a>
-                        </div>
-                    {% empty %}
-                        <p class="empty-state">Nothing pending.</p>
-                    {% endfor %}
-                </div>
-            </details>
-
-            <h1 style="font-size:1rem; margin-bottom:0.75rem;">Recent Vacancy Requests</h1>
-            <div class="record-list">
-                {% for req in recent_requests %}
-                    <div class="record-row">
-                        <div>
-                            <p class="record-title">{{ req.job_title }}</p>
-                            <p class="record-meta">{{ req.get_department_display }} · {{ req.num_openings }} opening{{ req.num_openings|pluralize }}</p>
-                        </div>
-                        <span class="status-badge status-{{ req.status|lower }}">{{ req.get_status_display }}</span>
-                    </div>
-                {% empty %}
-                    <p class="empty-state">You haven't raised any vacancy requests yet.</p>
-                {% endfor %}
-            </div>
-
-        {% elif request.user.role == 'HR_RECRUITER' %}
-            <div class="record-actions" style="margin-bottom:1rem;">
-                <a href="{% url 'create_job_posting' %}" class="btn-small">Post a Job</a>
-                <a href="{% url 'job_posting_list' %}" class="btn-small">All My Postings</a>
-            </div>
-
-            <details class="wide-card" style="margin-bottom:1.25rem;">
-                <summary style="cursor:pointer; font-weight:600; color:var(--color-primary);">Pending Vacancies to Post ({{ pending_queue|length }})</summary>
-                <div class="record-list" style="margin-top:1rem;">
-                    {% for req in pending_queue %}
-                        <div class="record-row">
-                            <div>
-                                <p class="record-title">{{ req.job_title }}</p>
-                                <p class="record-meta">{{ req.get_department_display }} · Raised by {{ req.raised_by.full_name }}</p>
-                            </div>
-                            <a href="{% url 'create_job_posting' %}?from_vacancy={{ req.pk }}" class="btn-small">Post This Job</a>
-                        </div>
-                    {% empty %}
-                        <p class="empty-state">Nothing pending.</p>
-                    {% endfor %}
-                </div>
-            </details>
-
-            <h1 style="font-size:1rem; margin-bottom:0.75rem;">My Recent Postings</h1>
-            <div class="record-list">
-                {% for posting in recent_postings %}
-                    <div class="record-row">
-                        <div>
-                            <p class="record-title">{{ posting.job_title }}</p>
-                            <p class="record-meta">{{ posting.get_department_display }} · {{ posting.location }}</p>
-                        </div>
-                        <span class="status-badge status-{{ posting.status|lower }}">{{ posting.get_status_display }}</span>
-                    </div>
-                {% empty %}
-                    <p class="empty-state">You haven't posted any jobs yet.</p>
-                {% endfor %}
-            </div>
-
-        {% elif request.user.role == 'INTERVIEWER' %}
-            <div class="record-actions" style="margin-bottom:1rem;">
-                <a href="{% url 'interviewer_dashboard' %}" class="btn-small">View All Applicants</a>
-                <a href="{% url 'my_interviews' %}" class="btn-small">My Interviews</a>
-            </div>
-
-            <details class="wide-card" style="margin-bottom:1.25rem;">
-                <summary style="cursor:pointer; font-weight:600; color:var(--color-primary);">Awaiting Interview ({{ pending_applicants|length }})</summary>
-                <div class="record-list" style="margin-top:1rem;">
-                    {% for app in pending_applicants %}
-                        <div class="record-row">
-                            <div>
-                                <p class="record-title">{{ app.candidate.full_name }}</p>
-                                <p class="record-meta">Applied to {{ app.job_posting.job_title }}</p>
-                            </div>
-                            {% if app.status == 'SHORTLISTED' %}
-                                <a href="{% url 'schedule_interview' app.pk %}" class="btn-small">Schedule Interview</a>
-                            {% else %}
-                                <span class="record-meta">Awaiting shortlist</span>
-                            {% endif %}
-                        </div>
-                    {% empty %}
-                        <p class="empty-state">Nothing awaiting review.</p>
-                    {% endfor %}
-                </div>
-            </details>
-
-            <h1 style="font-size:1rem; margin-bottom:0.75rem;">Job Postings with Applicants</h1>
-            <div class="record-list">
-                {% for posting in postings_with_applicants %}
-                    <div class="record-row">
-                        <div>
-                            <p class="record-title">{{ posting.job_title }}</p>
-                            <p class="record-meta">{{ posting.get_department_display }}</p>
-                        </div>
-                        <a href="{% url 'interviewer_dashboard' %}" class="btn-small">View Applicants</a>
-                    </div>
-                {% empty %}
-                    <p class="empty-state">No job postings have applicants yet.</p>
-                {% endfor %}
-            </div>
-
-        {% elif request.user.role == 'CANDIDATE' %}
-            <div class="record-actions" style="margin-bottom:1rem;">
-                <a href="{% url 'browse_jobs' %}" class="btn-small">Browse Jobs</a>
-                <a href="{% url 'my_applications' %}" class="btn-small">All My Applications</a>
-                <a href="{% url 'my_profile' %}" class="btn-small">My Profile</a>
-                <a href="{% url 'my_notifications' %}" class="btn-small">
-                    Notifications{% if unread_notifications %} ({{ unread_notifications }}){% endif %}
-                </a>
-            </div>
-
-            <h1 style="font-size:1rem; margin-bottom:0.75rem;">Latest Openings</h1>
-            <div class="record-list" style="margin-bottom:1.5rem;">
-                {% for posting in recent_jobs %}
-                    <div class="record-row">
-                        <div>
-                            <p class="record-title">{{ posting.job_title }}</p>
-                            <p class="record-meta">{{ posting.get_department_display }} · {{ posting.location }}</p>
-                        </div>
-                        <a href="{% url 'job_detail' posting.pk %}" class="btn-small">View</a>
-                    </div>
-                {% empty %}
-                    <p class="empty-state">No open positions right now.</p>
-                {% endfor %}
-            </div>
-
-            <h1 style="font-size:1rem; margin-bottom:0.75rem;">My Recent Applications</h1>
-            <div class="record-list">
-                {% for app in recent_applications %}
-                    <div class="record-row">
-                        <div>
-                            <p class="record-title">{{ app.job_posting.job_title }}</p>
-                            <p class="record-meta">Applied {{ app.applied_at|date:"M j, Y" }}</p>
-                        </div>
-                        <span class="status-badge status-{{ app.status|lower }}">{{ app.get_status_display }}</span>
-                    </div>
-                {% empty %}
-                    <p class="empty-state">You haven't applied to any jobs yet.</p>
-                {% endfor %}
-            </div>
-
-        {% elif request.user.role == 'HR_ADMIN' %}
-            <h1 style="font-size:1rem; margin-bottom:0.75rem;">Recently Created Company Users</h1>
-            <div class="record-list">
-                {% for u in recent_users %}
-                    <div class="record-row">
-                        <div>
-                            <p class="record-title">{{ u.full_name }}</p>
-                            <p class="record-meta">{{ u.email }}</p>
-                        </div>
-                        <span class="status-badge status-posted">{{ u.get_role_display }}</span>
-                    </div>
-                {% empty %}
-                    <p class="empty-state">No company users yet.</p>
-                {% endfor %}
-            </div>
-
-        {% else %}
-            <p class="empty-state">No pending actions in this stage yet — the {{ request.user.get_role_display }} workflow is rolling out in an upcoming module.</p>
-        {% endif %}
-
-        <p class="dash-footer-note">Full dashboard functionality rolling out in upcoming sprints.</p>
+        {% empty %}
+        <div class="px-5 py-10 text-center"><p class="text-sm text-muted">You haven't raised any vacancy requests yet.</p></div>
+        {% endfor %}
     </div>
-</body>
-</html>
+</div>
+
+{# ==================================================================== #}
+{# CANDIDATE                                                             #}
+{# ==================================================================== #}
+{% elif request.user.role == 'CANDIDATE' %}
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+    <div class="rounded-2xl bg-surface border border-border shadow-sm">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+            <h3 class="font-display font-bold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">work</span> Latest Openings</h3>
+            <a href="{% url 'browse_jobs' %}" class="text-sm font-semibold text-primary hover:underline">Browse all</a>
+        </div>
+        <div class="divide-y divide-border">
+            {% for posting in recent_jobs %}
+            <div class="px-5 py-3.5 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="font-semibold text-on-surface text-sm truncate">{{ posting.job_title }}</p>
+                    <p class="text-[12px] text-muted">{{ posting.get_department_display }} · {{ posting.location }}</p>
+                </div>
+                <a href="{% url 'job_detail' posting.pk %}" class="shrink-0 px-3 py-1.5 rounded-lg bg-primary-soft text-primary-deep text-[13px] font-semibold hover:bg-primary hover:text-white transition">View</a>
+            </div>
+            {% empty %}
+            <div class="px-5 py-10 text-center"><p class="text-sm text-muted">No open positions right now.</p></div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="rounded-2xl bg-surface border border-border shadow-sm">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+            <h3 class="font-display font-bold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">description</span> My Applications</h3>
+            <a href="{% url 'my_applications' %}" class="text-sm font-semibold text-primary hover:underline">All</a>
+        </div>
+        <div class="divide-y divide-border">
+            {% for app in recent_applications %}
+            <div class="px-5 py-3.5 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="font-semibold text-on-surface text-sm truncate">{{ app.job_posting.job_title }}</p>
+                    <p class="text-[12px] text-muted">Applied {{ app.applied_at|date:"M j, Y" }}</p>
+                </div>
+                {% include "_status_badge.html" with status=app.status label=app.get_status_display %}
+            </div>
+            {% empty %}
+            <div class="px-5 py-10 text-center"><p class="text-sm text-muted">You haven't applied to any jobs yet.</p></div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{# ==================================================================== #}
+{# HR ADMIN                                                              #}
+{# ==================================================================== #}
+{% elif request.user.role == 'HR_ADMIN' %}
+<div class="rounded-2xl bg-surface border border-border shadow-sm">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+        <h3 class="font-display font-bold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">manage_accounts</span> Recently Created Users</h3>
+        <a href="{% url 'create_company_user' %}" class="text-sm font-semibold text-primary hover:underline">+ Create user</a>
+    </div>
+    <div class="divide-y divide-border">
+        {% for u in recent_users %}
+        <div class="px-5 py-3.5 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-full bg-primary-soft text-primary-deep flex items-center justify-center font-bold text-sm shrink-0">{{ u.full_name|slice:":1"|upper }}</div>
+                <div class="min-w-0">
+                    <p class="font-semibold text-on-surface text-sm truncate">{{ u.full_name }}</p>
+                    <p class="text-[12px] text-muted truncate">{{ u.email }}</p>
+                </div>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-full bg-primary-soft text-primary-deep text-[11px] font-bold shrink-0">{{ u.get_role_display }}</span>
+        </div>
+        {% empty %}
+        <div class="px-5 py-10 text-center"><p class="text-sm text-muted">No company users yet.</p></div>
+        {% endfor %}
+    </div>
+</div>
+
+{# ==================================================================== #}
+{# HR MANAGER / ONBOARDING COORDINATOR — honest placeholder             #}
+{# ==================================================================== #}
+{% else %}
+<div class="rounded-2xl bg-surface border border-border shadow-sm px-6 py-16 text-center">
+    <span class="material-symbols-outlined text-[48px] text-primary-soft">rocket_launch</span>
+    <h3 class="font-display font-bold text-lg text-on-surface mt-3">Your workspace is coming soon</h3>
+    <p class="text-sm text-muted mt-1 max-w-md mx-auto">No pending actions in this stage yet — the {{ request.user.get_role_display }} workflow rolls out in an upcoming module. Meanwhile you can view recruitment analytics.</p>
+    <a href="{% url 'analytics_dashboard' %}" class="inline-flex items-center gap-2 mt-5 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition">
+        <span class="material-symbols-outlined text-[18px]">bar_chart</span> Open Analytics
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}

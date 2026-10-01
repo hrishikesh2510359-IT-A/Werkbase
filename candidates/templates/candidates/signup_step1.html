@@ -1,58 +1,44 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Candidate Sign Up</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="auth-page">
-        <div class="auth-card">
-            <div class="logo">Werkbase</div>
-            <h1>Create your candidate account</h1>
+{% extends "base_public.html" %}
 
-            {% if form.non_field_errors %}
-                <div class="error-banner">{{ form.non_field_errors.0 }}</div>
-            {% endif %}
+{% block title %}Werkbase — Candidate Sign Up{% endblock %}
 
-            <!-- Security boundary: no role field on this form. Every account
-                 created through this flow is a CANDIDATE, enforced server-side. -->
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="field">
-                    <label for="id_full_name">Full Name</label>
-                    {{ form.full_name }}
-                    {% if form.full_name.errors %}<div class="notice-banner">{{ form.full_name.errors.0 }}</div>{% endif %}
-                </div>
-                <div class="field">
-                    <label for="id_email">Email</label>
-                    {{ form.email }}
-                    {% if form.email.errors %}<div class="notice-banner">{{ form.email.errors.0 }}</div>{% endif %}
-                </div>
-                <div class="field">
-                    <label for="id_resume">Resume</label>
-                    {{ form.resume }}
-                    <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.3rem 0 0;">{{ form.resume.help_text }}</p>
-                    {% if form.resume.errors %}<div class="notice-banner">{{ form.resume.errors.0 }}</div>{% endif %}
-                </div>
-                <div class="field">
-                    <label for="id_password1">Password</label>
-                    {{ form.password1 }}
-                    {% if form.password1.errors %}<div class="notice-banner">{{ form.password1.errors.0 }}</div>{% endif %}
-                </div>
-                <div class="field">
-                    <label for="id_password2">Confirm Password</label>
-                    {{ form.password2 }}
-                    {% if form.password2.errors %}<div class="error-banner">{{ form.password2.errors.0 }}</div>{% endif %}
-                </div>
-                <button type="submit" class="btn-primary">Continue</button>
-            </form>
+{% block card %}
+<div class="bg-surface border border-border rounded-2xl shadow-sm p-7">
+    <h1 class="font-display font-bold text-2xl text-primary-deep text-center">Create your account</h1>
+    <p class="text-sm text-muted text-center mt-1 mb-6">Upload your resume and we'll pre-fill your profile.</p>
 
-            <div class="footer-link">
-                Already have an account? <a href="{% url 'candidate_login' %}">Sign in</a>
-            </div>
+    {% if form.non_field_errors %}
+    <div class="mb-4 px-3.5 py-2.5 rounded-xl bg-danger-soft text-danger border border-danger/20 text-sm">{{ form.non_field_errors.0 }}</div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="wb-form">
+        {% csrf_token %}
+        <div class="wb-field">
+            <label for="id_full_name">Full Name</label>{{ form.full_name }}
+            {% if form.full_name.errors %}<p class="text-[12px] text-danger mt-1">{{ form.full_name.errors.0 }}</p>{% endif %}
         </div>
-    </div>
-</body>
-</html>
+        <div class="wb-field">
+            <label for="id_email">Email</label>{{ form.email }}
+            {% if form.email.errors %}<p class="text-[12px] text-danger mt-1">{{ form.email.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="wb-field">
+            <label for="id_resume">Resume</label>{{ form.resume }}
+            <p class="text-[12px] text-muted mt-1">{{ form.resume.help_text }}</p>
+            {% if form.resume.errors %}<p class="text-[12px] text-danger mt-1">{{ form.resume.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="wb-field">
+            <label for="id_password1">Password</label>{{ form.password1 }}
+            {% if form.password1.errors %}<p class="text-[12px] text-danger mt-1">{{ form.password1.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="wb-field">
+            <label for="id_password2">Confirm Password</label>{{ form.password2 }}
+            {% if form.password2.errors %}<p class="text-[12px] text-danger mt-1">{{ form.password2.errors.0 }}</p>{% endif %}
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition shadow-sm">Continue</button>
+    </form>
+
+    <p class="text-center text-sm text-muted mt-6">
+        Already have an account? <a href="{% url 'candidate_login' %}" class="text-primary font-semibold hover:underline">Sign in</a>
+    </p>
+</div>
+{% endblock %}

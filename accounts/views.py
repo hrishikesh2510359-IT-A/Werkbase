@@ -2,8 +2,9 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
-from interviews.models import Notification
+from interviews.models import Interview, Notification
 from job_postings.models import Application, JobPosting, VacancyRequest
 
 from .decorators import hr_admin_required
@@ -52,12 +53,30 @@ def _dashboard_context(user):
         # end - it never surfaced an actionable candidate. Shortlisted = "ready to
         # be interviewed".
         pending_applicants = Application.objects.filter(status=Application.Status.SHORTLISTED).select_related("candidate", "job_posting")
+
+        # The interviewer's own upcoming interviews, surfaced on the dashboard so
+        # they can join / reschedule / cancel / give feedback the moment they log
+        # in - no click-through needed.
+        now = timezone.now()
+        upcoming = (
+            Interview.objects.filter(interviewer=user, status=Interview.Status.SCHEDULED)
+            .select_related("application__job_posting", "application__candidate")
+            .order_by("scheduled_at")
+        )
+        interview_rows = [{
+            "interview": iv,
+            "can_join": iv.is_join_window_open,
+            "can_give_feedback": now >= iv.scheduled_at,
+        } for iv in upcoming]
+
         return {
             "postings_with_applicants": postings_with_applicants[:5],
             "pending_applicants": pending_applicants,
+            "interview_rows": interview_rows,
             "stats": [
-                {"label": "Postings with applicants", "value": postings_with_applicants.count()},
+                {"label": "Upcoming interviews", "value": upcoming.count()},
                 {"label": "Awaiting interview", "value": pending_applicants.count()},
+                {"label": "Postings with applicants", "value": postings_with_applicants.count()},
             ],
         }
 
@@ -180,6 +199,7 @@ def google_login_stub(request):
 @login_required
 def dashboard_view(request):
     context = _dashboard_context(request.user)
+    context["active_nav"] = "dashboard"
     return render(request, 'accounts/dashboard.html', context)
 
 

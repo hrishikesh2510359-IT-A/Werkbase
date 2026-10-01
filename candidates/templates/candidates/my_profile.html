@@ -1,40 +1,30 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — My Profile</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="wide-page">
-        <div class="wide-card">
-            <h1>My Profile</h1>
+{% extends "base_app.html" %}
 
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="notice-strip">{{ message }}</div>
-                {% endfor %}
+{% block title %}Werkbase — My Profile{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+    <div class="bg-surface border border-border rounded-2xl shadow-sm p-6">
+        <div class="wb-field">
+            <label>Resume on File</label>
+            {% if profile.resume %}
+                <a href="{{ profile.resume.url }}" class="inline-flex items-center gap-2 text-primary font-medium hover:underline">
+                    <span class="material-symbols-outlined text-[18px]">description</span>{{ profile.resume.name|slice:"-40:" }}
+                </a>
+            {% else %}
+                <p class="text-sm text-muted">No resume on file.</p>
             {% endif %}
-
-            <div class="field">
-                <label>Resume on File</label>
-                {% if profile.resume %}
-                    <p style="margin:0;"><a href="{{ profile.resume.url }}" style="color:var(--color-primary);">{{ profile.resume.name|slice:"-40:" }}</a></p>
-                {% else %}
-                    <p class="empty-state" style="padding:0.25rem 0;">No resume on file.</p>
-                {% endif %}
-            </div>
-
-            <form method="post">
-                {% csrf_token %}
-                {% include "candidates/_profile_fields.html" %}
-                <div class="form-actions">
-                    <button type="submit" class="btn-primary">Save Changes</button>
-                    <a href="{% url 'dashboard' %}" class="btn-secondary" style="text-decoration:none; text-align:center;">Back to Dashboard</a>
-                </div>
-            </form>
         </div>
+
+        <form method="post" class="wb-form mt-2">
+            {% csrf_token %}
+            {% include "candidates/_profile_fields.html" %}
+            <div class="mt-6 flex gap-3">
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition shadow-sm">Save Changes</button>
+                <a href="{% url 'dashboard' %}" class="px-6 py-2.5 rounded-xl border border-border text-on-surface font-medium hover:bg-surface-alt transition">Back to Dashboard</a>
+            </div>
+        </form>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

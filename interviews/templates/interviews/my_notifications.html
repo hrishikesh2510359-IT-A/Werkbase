@@ -1,35 +1,23 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Notifications</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="dash-page">
-        <div class="dash-header">
-            <div class="dash-welcome">
-                <h1>Notifications</h1>
-            </div>
-            <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
-        </div>
+{% extends "base_app.html" %}
 
-        <div class="record-list">
-            {% for note in notifications %}
-                <div class="record-row">
-                    <div>
-                        <p class="record-title">{{ note.message }}</p>
-                        <p class="record-meta">{{ note.created_at|date:"d M Y" }} at {{ note.created_at|time:"g:i A" }}</p>
-                    </div>
-                    {% if note.link %}
-                        <a href="{{ note.link }}" class="btn-small">View</a>
-                    {% endif %}
-                </div>
-            {% empty %}
-                <p class="empty-state">No notifications yet.</p>
-            {% endfor %}
+{% block title %}Werkbase — Notifications{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="bg-surface border border-border rounded-2xl shadow-sm divide-y divide-border">
+    {% for note in notifications %}
+    <div class="px-5 py-4 flex items-center justify-between gap-3">
+        <div class="flex items-start gap-3 min-w-0">
+            <span class="w-9 h-9 rounded-full bg-primary-soft text-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[18px]">notifications</span></span>
+            <div class="min-w-0">
+                <p class="text-sm text-on-surface">{{ note.message }}</p>
+                <p class="text-[12px] text-muted mt-0.5">{{ note.created_at|date:"d M Y" }} at {{ note.created_at|time:"g:i A" }}</p>
+            </div>
         </div>
+        {% if note.link %}<a href="{{ note.link }}" class="shrink-0 px-3 py-1.5 rounded-lg border border-border text-[13px] font-medium hover:bg-surface-alt transition">View</a>{% endif %}
     </div>
-</body>
-</html>
+    {% empty %}
+    <div class="px-5 py-12 text-center"><span class="material-symbols-outlined text-[40px] text-border">notifications_off</span><p class="text-sm text-muted mt-2">No notifications yet.</p></div>
+    {% endfor %}
+</div>
+{% endblock %}

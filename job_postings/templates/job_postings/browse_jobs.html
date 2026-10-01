@@ -1,65 +1,53 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Browse Jobs</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="dash-page">
-        <div class="dash-header">
-            <div class="dash-welcome">
-                <h1>Open Positions</h1>
-            </div>
-            <div>
-                <a href="{% url 'my_applications' %}" class="btn-logout" style="margin-right:0.5rem;">My Applications</a>
-                <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
-            </div>
+{% extends "base_app.html" %}
+
+{% block title %}Werkbase — Browse Jobs{% endblock %}
+{% block page_title %}Open Positions{% endblock %}
+{% block topbar_actions %}
+<a href="{% url 'my_applications' %}" class="hidden sm:inline-flex px-3.5 py-2 rounded-lg border border-border text-sm font-medium text-on-surface hover:bg-surface-alt transition">My Applications</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<form method="get" class="wb-form bg-surface border border-border rounded-2xl shadow-sm p-4 mb-5">
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+        <div><label for="id_q">Search</label><input type="text" id="id_q" name="q" value="{{ query }}" placeholder="Title or keyword"></div>
+        <div>
+            <label for="id_department">Department</label>
+            <select id="id_department" name="department">
+                <option value="">All Departments</option>
+                {% for value, label in departments %}<option value="{{ value }}" {% if value == selected_department %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
         </div>
+        <div><label for="id_location">Location</label><input type="text" id="id_location" name="location" value="{{ location }}" placeholder="City"></div>
+        <button type="submit" class="py-2.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition shadow-sm">Search</button>
+    </div>
+</form>
 
-        {% if messages %}
-            {% for message in messages %}
-                <div class="notice-strip">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-
-        <form method="get" class="form-row" style="margin-bottom:1.5rem; align-items:end;">
-            <div class="field" style="margin-bottom:0;">
-                <label for="id_q">Search</label>
-                <input type="text" id="id_q" name="q" value="{{ query }}" placeholder="Title or keyword">
-            </div>
-            <div class="field" style="margin-bottom:0;">
-                <label for="id_department">Department</label>
-                <select id="id_department" name="department">
-                    <option value="">All Departments</option>
-                    {% for value, label in departments %}
-                        <option value="{{ value }}" {% if value == selected_department %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="field" style="margin-bottom:0;">
-                <label for="id_location">Location</label>
-                <input type="text" id="id_location" name="location" value="{{ location }}" placeholder="City">
-            </div>
-            <button type="submit" class="btn-primary" style="width:auto; padding:0.6rem 1.2rem;">Search</button>
-        </form>
-
-        <div class="record-list">
-            {% for posting in postings %}
-                <div class="record-row">
-                    <div>
-                        <p class="record-title">{{ posting.job_title }}</p>
-                        <p class="record-meta">{{ posting.get_department_display }} · {{ posting.get_employment_type_display }} · {{ posting.get_work_mode_display }} · {{ posting.location }}</p>
-                    </div>
-                    <div class="record-actions">
-                        <a href="{% url 'job_detail' posting.pk %}" class="btn-small">View &amp; Apply</a>
-                    </div>
-                </div>
-            {% empty %}
-                <p class="empty-state">No open positions right now. Check back soon.</p>
-            {% endfor %}
+<!-- Listings -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {% for posting in postings %}
+    <div class="bg-surface border border-border rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow flex flex-col">
+        <div class="flex items-start justify-between gap-2">
+            <h3 class="font-display font-semibold text-lg text-primary-deep">{{ posting.job_title }}</h3>
+            <span class="material-symbols-outlined text-primary-soft">work</span>
+        </div>
+        <p class="text-[13px] text-muted mt-1 flex flex-wrap gap-x-2 gap-y-1">
+            <span>{{ posting.get_department_display }}</span><span>·</span>
+            <span>{{ posting.get_employment_type_display }}</span><span>·</span>
+            <span>{{ posting.get_work_mode_display }}</span>
+        </p>
+        <p class="text-[13px] text-muted mt-1 flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">location_on</span>{{ posting.location }}</p>
+        <div class="mt-4 pt-4 border-t border-border">
+            <a href="{% url 'job_detail' posting.pk %}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary-soft text-primary-deep text-sm font-semibold hover:bg-primary hover:text-white transition">
+                View &amp; Apply <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </a>
         </div>
     </div>
-</body>
-</html>
+    {% empty %}
+    <div class="md:col-span-2 bg-surface border border-border rounded-2xl p-12 text-center">
+        <span class="material-symbols-outlined text-[40px] text-border">work_off</span>
+        <p class="text-sm text-muted mt-2">No open positions right now. Check back soon.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

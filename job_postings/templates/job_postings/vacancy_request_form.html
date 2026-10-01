@@ -1,52 +1,28 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Raise Vacancy Request</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="wide-page">
-        <div class="wide-card">
-            <h1>{% if editing %}Edit Vacancy Request{% else %}Raise Vacancy Request{% endif %}</h1>
+{% extends "base_app.html" %}
 
-            {% if form.non_field_errors %}
-                <div class="error-banner">{{ form.non_field_errors.0 }}</div>
-            {% endif %}
+{% block title %}Werkbase — {% if editing %}Edit{% else %}Raise{% endif %} Vacancy{% endblock %}
+{% block page_title %}{% if editing %}Edit Vacancy Request{% else %}Raise Vacancy Request{% endif %}{% endblock %}
 
-            <!-- Security boundary: this page is role-guarded to Hiring Manager only
-                 (role_required decorator); raised_by is set server-side, not from the form. -->
-            <form method="post">
-                {% csrf_token %}
-                <div class="field">
-                    <label for="id_job_title">Job Title</label>
-                    {{ form.job_title }}
-                </div>
-                <div class="form-row">
-                    <div class="field">
-                        <label for="id_department">Department</label>
-                        {{ form.department }}
-                    </div>
-                    <div class="field">
-                        <label for="id_num_openings">No. of Openings</label>
-                        {{ form.num_openings }}
-                    </div>
-                </div>
-                <div class="field">
-                    <label for="id_description">Need / Justification</label>
-                    {{ form.description }}
-                </div>
-                <div class="field">
-                    <label for="id_priority">Priority</label>
-                    {{ form.priority }}
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn-primary">{% if editing %}Save Changes{% else %}Submit Request{% endif %}</button>
-                    <a href="{% url 'my_vacancy_requests' %}" class="btn-secondary" style="text-decoration:none; text-align:center;">Cancel</a>
-                </div>
-            </form>
-        </div>
+{% block content %}
+<div class="max-w-2xl">
+    <div class="bg-surface border border-border rounded-2xl shadow-sm p-6">
+        {% if form.non_field_errors %}<div class="mb-4 px-4 py-3 rounded-xl bg-danger-soft text-danger border border-danger/20 text-sm">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+        <!-- Security boundary: Hiring Manager only; raised_by set server-side. -->
+        <form method="post" class="wb-form">
+            {% csrf_token %}
+            <div class="wb-field"><label for="id_job_title">Job Title</label>{{ form.job_title }}</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="wb-field"><label for="id_department">Department</label>{{ form.department }}</div>
+                <div class="wb-field"><label for="id_num_openings">No. of Openings</label>{{ form.num_openings }}</div>
+            </div>
+            <div class="wb-field"><label for="id_description">Need / Justification</label>{{ form.description }}</div>
+            <div class="wb-field"><label for="id_priority">Priority</label>{{ form.priority }}</div>
+            <div class="mt-2 flex gap-3">
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition shadow-sm">{% if editing %}Save Changes{% else %}Submit Request{% endif %}</button>
+                <a href="{% url 'my_vacancy_requests' %}" class="px-6 py-2.5 rounded-xl border border-border text-on-surface font-medium hover:bg-surface-alt transition">Cancel</a>
+            </div>
+        </form>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

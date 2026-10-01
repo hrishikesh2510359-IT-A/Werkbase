@@ -1,213 +1,113 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Werkbase — Recruitment Analytics</title>
-    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
-</head>
-<body>
-    <div class="dash-page">
-        <div class="dash-header">
-            <div class="dash-welcome">
-                <h1>Recruitment Analytics</h1>
-                <span class="role-pill">Read-only</span>
-            </div>
-            <a href="{% url 'dashboard' %}" class="btn-logout">Back to Dashboard</a>
-        </div>
+{% extends "base_app.html" %}
 
-        {# ---------------- Piece 5: filters ---------------- #}
-        <form method="get" class="wide-card" style="margin-bottom:1.5rem;">
-            <div class="form-row">
-                <div class="field" style="margin-bottom:0;">
-                    <label for="id_job">Job</label>
-                    <select id="id_job" name="job">
-                        <option value="">All jobs</option>
-                        {% for job in job_choices %}
-                            <option value="{{ job.id }}" {% if job.id == selected_job %}selected{% endif %}>{{ job.job_title }}</option>
-                        {% endfor %}
-                    </select>
+{% block title %}Werkbase — Recruitment Analytics{% endblock %}
+{% block page_title %}Recruitment Analytics{% endblock %}
+{% block page_subtitle %}<p class="text-[12px] text-muted">Read-only overview</p>{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<form method="get" class="wb-form bg-surface border border-border rounded-2xl shadow-sm p-4 mb-5">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div>
+            <label for="id_job">Job</label>
+            <select id="id_job" name="job">
+                <option value="">All jobs</option>
+                {% for job in job_choices %}<option value="{{ job.id }}" {% if job.id == selected_job %}selected{% endif %}>{{ job.job_title }}</option>{% endfor %}
+            </select>
+        </div>
+        <div><label for="id_date_from">Applied from</label><input type="date" id="id_date_from" name="date_from" value="{{ date_from }}"></div>
+        <div><label for="id_date_to">Applied to</label><input type="date" id="id_date_to" name="date_to" value="{{ date_to }}"></div>
+    </div>
+    <input type="hidden" name="sort" value="{{ sort }}">
+    <div class="mt-3 flex items-center gap-3">
+        <button type="submit" class="px-5 py-2 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition shadow-sm">Apply filters</button>
+        {% if filters_active %}<a href="{% url 'analytics_dashboard' %}" class="px-5 py-2 rounded-xl border border-border text-on-surface font-medium hover:bg-surface-alt transition">Clear</a>{% endif %}
+    </div>
+    <p class="text-[12px] text-muted mt-2">Dates filter by application date. The job-posting count uses each posting's creation date instead.</p>
+</form>
+
+<!-- Summary cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+    {% with card="p-5 rounded-2xl bg-surface border border-border shadow-sm" %}
+    <div class="{{ card }}"><div class="flex items-center justify-between mb-3"><span class="text-[13px] text-muted">Job Postings</span><span class="p-2 rounded-xl bg-primary-soft text-primary"><span class="material-symbols-outlined text-[20px]">work</span></span></div><p class="stat-num text-3xl text-on-surface">{{ summary.total_postings }}</p></div>
+    <div class="{{ card }}"><div class="flex items-center justify-between mb-3"><span class="text-[13px] text-muted">Applications</span><span class="p-2 rounded-xl bg-primary-soft text-primary"><span class="material-symbols-outlined text-[20px]">description</span></span></div><p class="stat-num text-3xl text-on-surface">{{ summary.total_applications }}</p></div>
+    <div class="{{ card }}"><div class="flex items-center justify-between mb-3"><span class="text-[13px] text-muted">Interviews</span><span class="p-2 rounded-xl bg-primary-soft text-primary"><span class="material-symbols-outlined text-[20px]">calendar_month</span></span></div><p class="stat-num text-3xl text-on-surface">{{ summary.total_interviews }}</p></div>
+    <div class="{{ card }}"><div class="flex items-center justify-between mb-3"><span class="text-[13px] text-muted">Selected / Hired</span><span class="p-2 rounded-xl bg-accent-soft text-accent"><span class="material-symbols-outlined text-[20px]">verified</span></span></div><p class="stat-num text-3xl text-accent">{{ summary.total_selected }}</p></div>
+    {% endwith %}
+</div>
+
+<!-- Funnel -->
+<div class="bg-surface border border-border rounded-2xl shadow-sm p-5 mb-5">
+    <h3 class="font-display font-semibold text-primary-deep mb-3">Application Funnel</h3>
+    {% if funnel_has_data %}<div class="relative h-72"><canvas id="funnelChart"></canvas></div>{% else %}<p class="text-sm text-muted py-8 text-center">No applications match these filters yet.</p>{% endif %}
+    <p class="text-[12px] text-muted mt-2">Each bar counts candidates who reached at least that stage. "Selected" includes candidates interviewed with a Proceed recommendation, since final hire approval isn't recorded yet.</p>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+    <!-- Time to hire -->
+    <div class="bg-surface border border-border rounded-2xl shadow-sm p-5">
+        <h3 class="font-display font-semibold text-primary-deep mb-3">Time to Hire</h3>
+        {% if time_to_hire %}
+            <div class="flex gap-2 mb-3">
+                <a class="px-3 py-1.5 rounded-lg text-[13px] font-medium transition {% if sort == 'desc' %}bg-primary text-white{% else %}border border-border text-muted hover:bg-surface-alt{% endif %}" href="?job={{ selected_job|default_if_none:'' }}&date_from={{ date_from }}&date_to={{ date_to }}&sort=desc">Longest first</a>
+                <a class="px-3 py-1.5 rounded-lg text-[13px] font-medium transition {% if sort == 'asc' %}bg-primary text-white{% else %}border border-border text-muted hover:bg-surface-alt{% endif %}" href="?job={{ selected_job|default_if_none:'' }}&date_from={{ date_from }}&date_to={{ date_to }}&sort=asc">Shortest first</a>
+            </div>
+            <div class="divide-y divide-border">
+                {% for row in time_to_hire %}
+                <div class="py-2.5 flex items-center justify-between">
+                    <div><p class="font-semibold text-on-surface text-sm">{{ row.job_title }}</p><p class="text-[12px] text-muted">{{ row.hires }} hire{{ row.hires|pluralize }}</p></div>
+                    <span class="stat-num text-on-surface">{{ row.avg_days }} <span class="text-sm text-muted font-normal">days</span></span>
                 </div>
-                <div class="form-row" style="gap:0.75rem;">
-                    <div class="field" style="margin-bottom:0;">
-                        <label for="id_date_from">Applied from</label>
-                        <input type="date" id="id_date_from" name="date_from" value="{{ date_from }}">
-                    </div>
-                    <div class="field" style="margin-bottom:0;">
-                        <label for="id_date_to">Applied to</label>
-                        <input type="date" id="id_date_to" name="date_to" value="{{ date_to }}">
-                    </div>
-                </div>
+                {% endfor %}
             </div>
-            <input type="hidden" name="sort" value="{{ sort }}">
-            <div class="form-actions" style="margin-top:1rem;">
-                <button type="submit" class="btn-primary" style="width:auto; padding:0.6rem 1.4rem;">Apply filters</button>
-                {% if filters_active %}
-                    <a href="{% url 'analytics_dashboard' %}" class="btn-secondary" style="text-decoration:none;">Clear</a>
-                {% endif %}
-            </div>
-            <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.6rem 0 0;">
-                Dates filter by application date. The job-posting count uses each posting's creation date instead.
-            </p>
-        </form>
-
-        {# ---------------- Piece 4: summary cards ---------------- #}
-        <div class="card-grid" style="margin-bottom:1.5rem;">
-            <div class="stat-card">
-                <p class="stat-value">{{ summary.total_postings }}</p>
-                <p class="stat-label">Job Postings</p>
-            </div>
-            <div class="stat-card">
-                <p class="stat-value">{{ summary.total_applications }}</p>
-                <p class="stat-label">Applications Received</p>
-            </div>
-            <div class="stat-card">
-                <p class="stat-value">{{ summary.total_interviews }}</p>
-                <p class="stat-label">Interviews Scheduled</p>
-            </div>
-            <div class="stat-card">
-                <p class="stat-value">{{ summary.total_selected }}</p>
-                <p class="stat-label">Selected / Hired</p>
-            </div>
-        </div>
-
-        {# ---------------- Piece 1: funnel ---------------- #}
-        <div class="wide-card" style="max-width:none; margin-bottom:1.5rem;">
-            <h1>Application Funnel</h1>
-            {% if funnel_has_data %}
-                <div style="position:relative; height:280px;">
-                    <canvas id="funnelChart"></canvas>
-                </div>
-            {% else %}
-                <p class="empty-state">No applications match these filters yet.</p>
-            {% endif %}
-            <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.6rem 0 0;">
-                Each bar counts candidates who reached at least that stage. "Selected" includes
-                candidates interviewed with a Proceed recommendation, since final hire approval
-                isn't recorded yet.
-            </p>
-        </div>
-
-        <div class="form-row" style="margin-bottom:1.5rem;">
-            {# ---------------- Piece 2: time to hire ---------------- #}
-            <div class="wide-card" style="max-width:none;">
-                <h1>Time to Hire</h1>
-                {% if time_to_hire %}
-                    <div class="record-actions" style="margin-bottom:0.75rem;">
-                        <a class="btn-small" href="?job={{ selected_job|default_if_none:'' }}&date_from={{ date_from }}&date_to={{ date_to }}&sort=desc"
-                           {% if sort == 'desc' %}style="background:var(--color-accent-light); color:#fff;"{% endif %}>Longest first</a>
-                        <a class="btn-small" href="?job={{ selected_job|default_if_none:'' }}&date_from={{ date_from }}&date_to={{ date_to }}&sort=asc"
-                           {% if sort == 'asc' %}style="background:var(--color-accent-light); color:#fff;"{% endif %}>Shortest first</a>
-                    </div>
-                    <div class="record-list">
-                        {% for row in time_to_hire %}
-                            <div class="record-row">
-                                <div>
-                                    <p class="record-title">{{ row.job_title }}</p>
-                                    <p class="record-meta">{{ row.hires }} hire{{ row.hires|pluralize }}</p>
-                                </div>
-                                <span class="score-value">{{ row.avg_days }} days</span>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="empty-state">No completed hires yet for these filters.</p>
-                {% endif %}
-                <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.6rem 0 0;">
-                    Days from posting creation to a Proceed recommendation. Jobs with no hire are left out, not counted as zero.
-                </p>
-            </div>
-
-            {# ---------------- Piece 3: sources ---------------- #}
-            <div class="wide-card" style="max-width:none;">
-                <h1>Candidate Sources</h1>
-                {% if sources_has_data %}
-                    <div style="position:relative; height:260px;">
-                        <canvas id="sourceChart"></canvas>
-                    </div>
-                {% else %}
-                    <p class="empty-state">No applications match these filters yet.</p>
-                {% endif %}
-                <p style="font-size:0.78rem; color:var(--color-text-muted); margin:0.6rem 0 0;">
-                    "Not recorded" covers applications submitted before the source question existed.
-                </p>
-            </div>
-        </div>
+        {% else %}<p class="text-sm text-muted py-8 text-center">No completed hires yet for these filters.</p>{% endif %}
+        <p class="text-[12px] text-muted mt-2">Days from posting creation to a Proceed recommendation. Jobs with no hire are left out, not counted as zero.</p>
     </div>
 
-    {# Data is handed to JS via json_script (escaped), never interpolated into the script body. #}
-    {{ funnel|json_script:"funnel-data" }}
-    {{ sources|json_script:"source-data" }}
+    <!-- Sources -->
+    <div class="bg-surface border border-border rounded-2xl shadow-sm p-5">
+        <h3 class="font-display font-semibold text-primary-deep mb-3">Candidate Sources</h3>
+        {% if sources_has_data %}<div class="relative h-64"><canvas id="sourceChart"></canvas></div>{% else %}<p class="text-sm text-muted py-8 text-center">No applications match these filters yet.</p>{% endif %}
+        <p class="text-[12px] text-muted mt-2">"Not recorded" covers applications submitted before the source question existed.</p>
+    </div>
+</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-    <script>
-        (function () {
-            if (typeof Chart === 'undefined') {
-                // CDN unreachable (e.g. offline demo): leave the canvases blank rather than throw.
-                document.querySelectorAll('canvas').forEach(function (c) {
-                    c.parentNode.innerHTML = '<p class="empty-state">Charts need an internet connection to load.</p>';
-                });
-                return;
-            }
+{# Data handed to JS via json_script (escaped), never interpolated into the script body. #}
+{{ funnel|json_script:"funnel-data" }}
+{{ sources|json_script:"source-data" }}
 
-            // Pull the palette from the existing CSS variables so charts match the app.
-            var css = getComputedStyle(document.documentElement);
-            var primary = css.getPropertyValue('--color-primary').trim();
-            var accent = css.getPropertyValue('--color-accent').trim();
-            var accentLight = css.getPropertyValue('--color-accent-light').trim();
-            var muted = css.getPropertyValue('--color-text-muted').trim();
-            var textColor = css.getPropertyValue('--color-text').trim();
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+    (function () {
+        if (typeof Chart === 'undefined') {
+            document.querySelectorAll('canvas').forEach(function (c) {
+                c.parentNode.innerHTML = '<p class="text-sm text-muted py-8 text-center">Charts need an internet connection to load.</p>';
+            });
+            return;
+        }
+        // Blue + green palette matching the app theme.
+        var primary = '#2C5F7C', accent = '#5f7d4f', accentLight = '#A8B892', muted = '#5a6b73', textColor = '#14303f';
+        Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+        Chart.defaults.color = textColor;
 
-            Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
-            Chart.defaults.color = textColor;
-
-            var funnelCanvas = document.getElementById('funnelChart');
-            if (funnelCanvas) {
-                var funnel = JSON.parse(document.getElementById('funnel-data').textContent);
-                new Chart(funnelCanvas, {
-                    type: 'bar',
-                    data: {
-                        labels: funnel.labels,
-                        datasets: [{
-                            label: 'Candidates',
-                            data: funnel.values,
-                            backgroundColor: [primary, primary, accent, accent, accentLight],
-                            borderRadius: 6,
-                        }],
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: accentLight } },
-                            y: { grid: { display: false } },
-                        },
-                    },
-                });
-            }
-
-            var sourceCanvas = document.getElementById('sourceChart');
-            if (sourceCanvas) {
-                var sources = JSON.parse(document.getElementById('source-data').textContent);
-                new Chart(sourceCanvas, {
-                    type: 'doughnut',
-                    data: {
-                        labels: sources.labels,
-                        datasets: [{
-                            data: sources.values,
-                            backgroundColor: [primary, accent, accentLight, muted, '#1E4258', '#8FA06F'],
-                            borderWidth: 2,
-                            borderColor: '#FFFFFF',
-                        }],
-                    },
-                    options: {
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom' } },
-                    },
-                });
-            }
-        })();
-    </script>
-</body>
-</html>
+        var funnelCanvas = document.getElementById('funnelChart');
+        if (funnelCanvas) {
+            var funnel = JSON.parse(document.getElementById('funnel-data').textContent);
+            new Chart(funnelCanvas, {
+                type: 'bar',
+                data: { labels: funnel.labels, datasets: [{ label: 'Candidates', data: funnel.values, backgroundColor: [primary, primary, accent, accent, accentLight], borderRadius: 6 }] },
+                options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e6edec' } }, y: { grid: { display: false } } } },
+            });
+        }
+        var sourceCanvas = document.getElementById('sourceChart');
+        if (sourceCanvas) {
+            var sources = JSON.parse(document.getElementById('source-data').textContent);
+            new Chart(sourceCanvas, {
+                type: 'doughnut',
+                data: { labels: sources.labels, datasets: [{ data: sources.values, backgroundColor: [primary, accent, accentLight, muted, '#1E4258', '#8FA06F'], borderWidth: 2, borderColor: '#FFFFFF' }] },
+                options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
+            });
+        }
+    })();
+</script>
+{% endblock %}
