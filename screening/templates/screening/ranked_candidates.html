@@ -4,10 +4,10 @@
 {% block page_title %}Ranked Candidates{% endblock %}
 {% block page_subtitle %}<p class="text-[12px] text-muted">{{ posting.job_title }}</p>{% endblock %}
 {% block topbar_actions %}
-{% if reveal %}
-    <a href="{% url 'ranked_candidates' posting.pk %}" class="px-3.5 py-2 rounded-lg border border-border text-sm font-medium text-on-surface hover:bg-surface-alt transition">Hide identities</a>
+{% if blind %}
+    <a href="?{% if status_filter %}status={{ status_filter }}{% endif %}" class="px-3.5 py-2 rounded-lg border border-border text-sm font-medium text-on-surface hover:bg-surface-alt transition">Show names</a>
 {% else %}
-    <a href="{% url 'ranked_candidates' posting.pk %}?reveal=1" class="px-3.5 py-2 rounded-lg border border-border text-sm font-medium text-on-surface hover:bg-surface-alt transition">Reveal identities</a>
+    <a href="?blind=1{% if status_filter %}&status={{ status_filter }}{% endif %}" class="px-3.5 py-2 rounded-lg border border-border text-sm font-medium text-on-surface hover:bg-surface-alt transition">Blind review</a>
 {% endif %}
 <form method="post" action="{% url 'recompute_scores' posting.pk %}">{% csrf_token %}<button class="px-3.5 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition shadow-sm">Recompute</button></form>
 {% endblock %}
@@ -16,12 +16,20 @@
 {% if job_has_no_required_skills %}
 <div class="mb-4 px-4 py-3 rounded-xl bg-danger-soft text-danger border border-danger/20 text-sm">This posting has no required skills set, so every applicant scores 0. Add required skills to the posting, then recompute.</div>
 {% endif %}
-{% if not reveal %}
+{% if blind %}
 <div class="mb-4 flex items-start gap-2 px-4 py-3 rounded-xl bg-primary-soft text-primary-deep text-sm">
     <span class="material-symbols-outlined text-[18px] text-primary">visibility_off</span>
-    <span>Names are hidden for this first pass to reduce bias. Scores and skills are unaffected — identity is shown once a candidate is shortlisted or rejected.</span>
+    <span>Blind review is on: names are hidden to reduce first-pass bias. Scores and skills are unaffected — identity shows once a candidate is shortlisted or rejected.</span>
 </div>
 {% endif %}
+
+<div class="mb-4 flex flex-wrap gap-2">
+    <a href="?{% if blind %}blind=1{% endif %}" class="px-3.5 py-1.5 rounded-full text-sm font-medium border {% if not status_filter %}bg-primary text-white border-primary{% else %}bg-surface text-on-surface border-border hover:bg-surface-alt{% endif %} transition">All <span class="opacity-80">{{ counts.all }}</span></a>
+    <a href="?status=new{% if blind %}&blind=1{% endif %}" class="px-3.5 py-1.5 rounded-full text-sm font-medium border {% if status_filter == 'new' %}bg-primary text-white border-primary{% else %}bg-surface text-on-surface border-border hover:bg-surface-alt{% endif %} transition">New <span class="opacity-80">{{ counts.new }}</span></a>
+    <a href="?status=shortlisted{% if blind %}&blind=1{% endif %}" class="px-3.5 py-1.5 rounded-full text-sm font-medium border {% if status_filter == 'shortlisted' %}bg-primary text-white border-primary{% else %}bg-surface text-on-surface border-border hover:bg-surface-alt{% endif %} transition">Shortlisted <span class="opacity-80">{{ counts.shortlisted }}</span></a>
+    <a href="?status=progress{% if blind %}&blind=1{% endif %}" class="px-3.5 py-1.5 rounded-full text-sm font-medium border {% if status_filter == 'progress' %}bg-primary text-white border-primary{% else %}bg-surface text-on-surface border-border hover:bg-surface-alt{% endif %} transition">In interview / decided <span class="opacity-80">{{ counts.progress }}</span></a>
+    <a href="?status=rejected{% if blind %}&blind=1{% endif %}" class="px-3.5 py-1.5 rounded-full text-sm font-medium border {% if status_filter == 'rejected' %}bg-primary text-white border-primary{% else %}bg-surface text-on-surface border-border hover:bg-surface-alt{% endif %} transition">Rejected <span class="opacity-80">{{ counts.rejected }}</span></a>
+</div>
 
 <div class="space-y-3">
     {% for row in rows %}

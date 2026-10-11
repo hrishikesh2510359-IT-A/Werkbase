@@ -20,7 +20,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-1.5">
             {% with btn="px-2.5 py-1.5 rounded-lg border border-border text-[13px] font-medium text-on-surface hover:bg-surface-alt transition" %}
-            <a href="{% url 'ranked_candidates' posting.pk %}" class="px-2.5 py-1.5 rounded-lg bg-primary-soft text-primary-deep text-[13px] font-semibold hover:bg-primary hover:text-white transition">Candidates</a>
+            <a href="{% url 'ranked_candidates' posting.pk %}" class="px-2.5 py-1.5 rounded-lg bg-primary-soft text-primary-deep text-[13px] font-semibold hover:bg-primary hover:text-white transition">Applicants ({{ posting.applicant_count }}){% if posting.new_count %} · <span class="text-danger group-hover:text-white">{{ posting.new_count }} new</span>{% endif %}</a>
             <a href="{% url 'edit_job_posting' posting.pk %}" class="{{ btn }}">Edit</a>
             {% if posting.status == 'DRAFT' %}
                 <form method="post" action="{% url 'transition_job_posting' posting.pk 'publish' %}">{% csrf_token %}<button class="{{ btn }}">Publish</button></form>

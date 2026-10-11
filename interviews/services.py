@@ -32,20 +32,45 @@ logger = logging.getLogger(__name__)
 # Google Calendar / Meet
 # ---------------------------------------------------------------------------
 
+def _oauth_configured():
+    return all(
+        getattr(settings, name, "")
+        for name in ("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN")
+    )
+
+
 def google_calendar_enabled():
-    """True only when a readable service-account key is configured.
+    """True when either credential style is configured: an OAuth refresh token
+    (works with a normal Gmail account) or a readable service-account key
+    (Workspace only).
 
     Credentials come from settings (which read env vars) - never hardcoded.
     When unconfigured we skip the API entirely rather than attempting a call
     that would hang the request before failing.
     """
+    if _oauth_configured():
+        return True
     path = getattr(settings, "GOOGLE_CALENDAR_CREDENTIALS_FILE", "")
     return bool(path) and os.path.exists(path)
 
 
 def _calendar_client():
     from google.oauth2 import service_account
+    from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
+
+    if _oauth_configured():
+        # Refresh-token flow: the library silently swaps the long-lived refresh
+        # token for a short-lived access token on first use.
+        credentials = Credentials(
+            token=None,
+            refresh_token=settings.GOOGLE_OAUTH_REFRESH_TOKEN,
+            client_id=settings.GOOGLE_OAUTH_CLIENT_ID,
+            client_secret=settings.GOOGLE_OAUTH_CLIENT_SECRET,
+            token_uri="https://oauth2.googleapis.com/token",
+            scopes=GOOGLE_CALENDAR_SCOPES,
+        )
+        return build("calendar", "v3", credentials=credentials, cache_discovery=False)
 
     credentials = service_account.Credentials.from_service_account_file(
         settings.GOOGLE_CALENDAR_CREDENTIALS_FILE, scopes=GOOGLE_CALENDAR_SCOPES
@@ -161,6 +186,51 @@ def notify(recipient, message, link=""):
     return Notification.objects.create(recipient=recipient, message=message, link=link)
 
 
+def notify_users(recipients, message, link="", actor=None):
+    """Notifies several people at once, once each.
+
+    Skips duplicates, inactive/missing users and the *actor* - whoever just
+    performed the action already knows (they get the on-page confirmation), so
+    pinging them would only be noise.
+    """
+    seen, rows = set(), []
+    for user in recipients:
+        if user is None or not user.is_active or user.pk in seen:
+            continue
+        if actor is not None and user.pk == actor.pk:
+            continue
+        seen.add(user.pk)
+        rows.append(Notification(recipient=user, message=message, link=link))
+    return Notification.objects.bulk_create(rows)
+
+
+def users_with_role(role):
+    from accounts.models import User
+    return list(User.objects.filter(role=role, is_active=True))
+
+
+def application_staff(application):
+    """The recruiter who owns the posting plus the hiring manager who raised the
+    vacancy behind it - the people 'related' to any change on an application."""
+    posting = application.job_posting
+    staff = [posting.posted_by]
+    if posting.vacancy_request_id:
+        staff.append(posting.vacancy_request.raised_by)
+    return staff
+
+
+def notify_application_staff(application, message, actor=None, include_interviewers=False):
+    """Tells the posting's recruiter and hiring manager (each with a link that
+    lands on a page their role can actually open)."""
+    posting = application.job_posting
+    notify_users([posting.posted_by], message, link=f"/screening/postings/{posting.pk}/candidates/", actor=actor)
+    if posting.vacancy_request_id:
+        notify_users([posting.vacancy_request.raised_by], message, link="/analytics/", actor=actor)
+    if include_interviewers:
+        interviewers = {i.interviewer for i in application.interviews.select_related("interviewer")}
+        notify_users(interviewers, message, link="/interviews/mine/", actor=actor)
+
+
 # ---------------------------------------------------------------------------
 # Application status sync
 # ---------------------------------------------------------------------------
@@ -201,11 +271,17 @@ def schedule_interview(*, application, interviewer, scheduled_at, duration_minut
     )
 
     set_application_status(application, Application.Status.INTERVIEW_SCHEDULED)
+    when = f"{timezone.localtime(scheduled_at):%d %b %Y at %I:%M %p}"
     notify(
         application.candidate,
-        f"Interview scheduled for {application.job_posting.job_title} on "
-        f"{timezone.localtime(scheduled_at):%d %b %Y at %I:%M %p}.",
+        f"Interview scheduled for {application.job_posting.job_title} on {when}.",
         link="/jobs/applications/mine/",
+    )
+    notify_application_staff(
+        application,
+        f"Interview scheduled: {application.candidate.full_name} for {application.job_posting.job_title} "
+        f"on {when} with {interviewer.full_name}.",
+        actor=interviewer,
     )
     return interview
 
@@ -239,11 +315,17 @@ def reschedule_interview(interview, *, scheduled_at, duration_minutes, manual_li
         "calendar_event_id", "updated_at",
     ])
 
+    when = f"{timezone.localtime(scheduled_at):%d %b %Y at %I:%M %p}"
     notify(
         interview.application.candidate,
-        f"Interview for {interview.application.job_posting.job_title} moved to "
-        f"{timezone.localtime(scheduled_at):%d %b %Y at %I:%M %p}.",
+        f"Interview for {interview.application.job_posting.job_title} moved to {when}.",
         link="/jobs/applications/mine/",
+    )
+    notify_application_staff(
+        interview.application,
+        f"Interview rescheduled: {interview.application.candidate.full_name} for "
+        f"{interview.application.job_posting.job_title} is now {when}.",
+        actor=interview.interviewer,
     )
     return interview
 
@@ -263,6 +345,12 @@ def cancel_interview(interview):
         "You're still shortlisted - a new slot may be arranged.",
         link="/jobs/applications/mine/",
     )
+    notify_application_staff(
+        interview.application,
+        f"Interview cancelled: {interview.application.candidate.full_name} for "
+        f"{interview.application.job_posting.job_title} (back to Shortlisted).",
+        actor=interview.interviewer,
+    )
     return interview
 
 
@@ -279,4 +367,12 @@ def submit_feedback(interview, *, rating, comment, recommendation):
     ])
 
     set_application_status(interview.application, Application.Status.INTERVIEWED)
+    application = interview.application
+    message = (
+        f"Interview feedback submitted for {application.candidate.full_name} "
+        f"({application.job_posting.job_title}): {interview.get_recommendation_display()}, {rating}/5."
+    )
+    notify_users(users_with_role("HR_MANAGER"), message + " Ready for a hiring decision.",
+                 link="/hiring/decisions/", actor=interview.interviewer)
+    notify_application_staff(application, message, actor=interview.interviewer)
     return interview

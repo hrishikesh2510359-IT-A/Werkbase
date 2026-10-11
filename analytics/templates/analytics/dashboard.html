@@ -86,7 +86,10 @@
             return;
         }
         // Blue + green palette matching the app theme.
-        var primary = '#2C5F7C', accent = '#5f7d4f', accentLight = '#A8B892', muted = '#5a6b73', textColor = '#14303f';
+        var css = getComputedStyle(document.documentElement);
+        function tok(n) { return 'rgb(' + css.getPropertyValue('--c-' + n).trim().split(' ').join(',') + ')'; }
+        var primary = tok('primary'), accent = tok('accent'), accentLight = '#A8B892', muted = tok('muted'), textColor = tok('on-surface');
+        var gridColor = tok('border'), surfaceColor = tok('surface');
         Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
         Chart.defaults.color = textColor;
 
@@ -96,7 +99,7 @@
             new Chart(funnelCanvas, {
                 type: 'bar',
                 data: { labels: funnel.labels, datasets: [{ label: 'Candidates', data: funnel.values, backgroundColor: [primary, primary, accent, accent, accentLight], borderRadius: 6 }] },
-                options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e6edec' } }, y: { grid: { display: false } } } },
+                options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: gridColor } }, y: { grid: { display: false } } } },
             });
         }
         var sourceCanvas = document.getElementById('sourceChart');
@@ -104,7 +107,7 @@
             var sources = JSON.parse(document.getElementById('source-data').textContent);
             new Chart(sourceCanvas, {
                 type: 'doughnut',
-                data: { labels: sources.labels, datasets: [{ data: sources.values, backgroundColor: [primary, accent, accentLight, muted, '#1E4258', '#8FA06F'], borderWidth: 2, borderColor: '#FFFFFF' }] },
+                data: { labels: sources.labels, datasets: [{ data: sources.values, backgroundColor: [primary, accent, accentLight, muted, '#1E4258', '#8FA06F'], borderWidth: 2, borderColor: surfaceColor }] },
                 options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
             });
         }

@@ -11,11 +11,12 @@
             background:
                 radial-gradient(60rem 40rem at 110% -10%, rgba(44,95,124,0.10), transparent 60%),
                 radial-gradient(50rem 40rem at -10% 110%, rgba(95,125,79,0.10), transparent 60%),
-                #f3f6f6;
+                rgb(var(--c-background));
         }
     </style>
 </head>
 <body class="brand-bg text-on-surface antialiased min-h-screen">
+    <div class="fixed bottom-4 right-4 z-50 rounded-full bg-surface border border-border shadow-md">{% include "_theme_toggle.html" %}</div>
     {% block body %}
     <div class="min-h-screen flex flex-col items-center justify-center px-4 py-10">
         <a href="{% url 'portal_select' %}" class="flex items-center gap-2.5 mb-6">

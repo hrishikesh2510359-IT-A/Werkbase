@@ -269,3 +269,37 @@ def recompute_for_posting(posting):
     for application in applications:
         score_application(application)
     return len(applications)
+
+
+# ---------------------------------------------------------------------------
+# Recruiter decision (manual - scoring never changes status by itself)
+# ---------------------------------------------------------------------------
+
+def apply_screening_decision(application, action, actor):
+    """Shortlists or rejects an application and tells everyone affected.
+
+    Returns the new status. `action` must be "shortlist" or "reject" (the view
+    validates it)."""
+    from interviews.services import notify, notify_users, users_with_role
+    from accounts.models import User
+    from job_postings.models import Application
+
+    title = application.job_posting.job_title
+    if action == "shortlist":
+        application.status = Application.Status.SHORTLISTED
+        application.save(update_fields=["status"])
+        notify(application.candidate,
+               f"Good news! You've been shortlisted for {title}. An interview will be scheduled soon.",
+               link="/jobs/applications/mine/")
+        # Interviewers self-serve, so every interviewer hears about a new
+        # shortlisted candidate who is ready to be scheduled.
+        notify_users(users_with_role(User.Role.INTERVIEWER),
+                     f"{application.candidate.full_name} was shortlisted for {title} - ready to schedule.",
+                     link=f"/interviews/applications/{application.pk}/schedule/", actor=actor)
+    else:
+        application.status = Application.Status.REJECTED
+        application.save(update_fields=["status"])
+        notify(application.candidate,
+               f"Update on your application for {title}: we won't be moving forward this time.",
+               link="/jobs/applications/mine/")
+    return application.status

@@ -13,8 +13,14 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Secrets (API keys / tokens) live in an untracked .env file next to manage.py -
+# copy .env.example to .env and fill it in. Real environment variables win.
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -44,6 +50,7 @@ INSTALLED_APPS = [
     'screening',
     'interviews',
     'analytics',
+    'hiring',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -70,6 +77,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'accounts.context_processors.notifications',
             ],
         },
     },
@@ -145,3 +153,56 @@ LOGOUT_REDIRECT_URL = '/'
 # delegation) - required for Meet links; a bare service account can't mint them.
 GOOGLE_CALENDAR_CREDENTIALS_FILE = os.environ.get('GOOGLE_CALENDAR_CREDENTIALS_FILE', '')
 GOOGLE_CALENDAR_IMPERSONATE_USER = os.environ.get('GOOGLE_CALENDAR_IMPERSONATE_USER', '')
+
+# Option B (works with a normal @gmail.com account - no Workspace needed): an
+# OAuth refresh token for the interviewing account. Get it once with
+#   python manage.py google_auth
+# then paste the three values into .env. When these are set they take priority
+# over the service-account settings above.
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', '')
+GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET', '')
+GOOGLE_OAUTH_REFRESH_TOKEN = os.environ.get('GOOGLE_OAUTH_REFRESH_TOKEN', '')
+
+# --- Sign in with Google -----------------------------------------------------
+# A "Web application" OAuth client (different from the Desktop one above) with
+# http://localhost:8000/auth/google/callback/ as an authorized redirect URI.
+# Unset, the Google buttons on the login pages are hidden.
+GOOGLE_LOGIN_CLIENT_ID = os.environ.get('GOOGLE_LOGIN_CLIENT_ID', '')
+GOOGLE_LOGIN_CLIENT_SECRET = os.environ.get('GOOGLE_LOGIN_CLIENT_SECRET', '')
+
+# --- AI resume reading -------------------------------------------------------
+# With GEMINI_API_KEY set (free key from https://aistudio.google.com/apikey - no
+# card needed), uploaded resumes are read by Google Gemini; PDFs are sent as the
+# original document so layout and scanned pages work. Unset, or on any API
+# failure (e.g. free-tier rate limit), the offline rule-based parser is used.
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
+
+# --- Email (offer letters) ----------------------------------------------------
+# Free option: a Gmail account with an "App password"
+# (https://myaccount.google.com/apppasswords - needs 2-Step Verification on).
+# With EMAIL_HOST_USER + EMAIL_HOST_PASSWORD set, real emails go out through
+# Gmail's SMTP. Unset, emails are printed to the server console instead, so
+# nothing breaks and nothing is silently lost during development.
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '').replace(' ', '')  # Google shows it in 4-char groups
+if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = True
+EMAIL_TIMEOUT = 10  # seconds - a slow mail server must never hang the hiring decision
+DEFAULT_FROM_EMAIL = f"Werkbase Recruitment <{EMAIL_HOST_USER}>" if EMAIL_HOST_USER else "Werkbase Recruitment <no-reply@werkbase.local>"
+# Used to build absolute links inside emails.
+SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000').rstrip('/')
+
+# Tests must never hit the real Anthropic/Google APIs (or spend money), even
+# when real keys are present in .env.
+import sys
+if 'test' in sys.argv:
+    GEMINI_API_KEY = ''
+    GOOGLE_LOGIN_CLIENT_ID = GOOGLE_LOGIN_CLIENT_SECRET = ''
+    GOOGLE_OAUTH_CLIENT_ID = GOOGLE_OAUTH_CLIENT_SECRET = GOOGLE_OAUTH_REFRESH_TOKEN = ''
+    GOOGLE_CALENDAR_CREDENTIALS_FILE = ''

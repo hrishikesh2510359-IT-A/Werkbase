@@ -116,3 +116,61 @@ class InterviewServiceTests(TestCase):
         self.application.refresh_from_db()
         self.assertEqual(interview.status, Interview.Status.COMPLETED)
         self.assertEqual(self.application.status, Application.Status.INTERVIEWED)
+
+    def test_join_available_immediately_not_only_near_the_slot(self):
+        # Scheduled a full day away - the Join button must still be available.
+        with mock.patch.object(services, "create_meet_event", return_value=("https://meet.google.com/abc", "e1")):
+            interview = self._schedule(self.slot)
+        self.assertTrue(interview.can_join)
+
+    def test_no_join_without_a_link_or_after_cancel(self):
+        with mock.patch.object(services, "create_meet_event", return_value=(None, None)):
+            interview = self._schedule(self.slot, manual_link="")
+        self.assertFalse(interview.can_join)  # no link at all
+        interview.meet_link = "https://meet.example/x"
+        interview.status = Interview.Status.CANCELLED
+        self.assertFalse(interview.can_join)
+
+
+class GoogleCredentialModeTests(TestCase):
+    """Meet links work with either an OAuth refresh token (plain Gmail) or a
+    Workspace service account. Google is never actually called."""
+
+    def test_oauth_settings_enable_google(self):
+        from django.test import override_settings
+        with override_settings(GOOGLE_OAUTH_CLIENT_ID="id", GOOGLE_OAUTH_CLIENT_SECRET="sec",
+                               GOOGLE_OAUTH_REFRESH_TOKEN="tok"):
+            self.assertTrue(services.google_calendar_enabled())
+
+    def test_partial_oauth_settings_do_not_enable_google(self):
+        from django.test import override_settings
+        with override_settings(GOOGLE_OAUTH_CLIENT_ID="id", GOOGLE_OAUTH_CLIENT_SECRET="",
+                               GOOGLE_OAUTH_REFRESH_TOKEN="tok", GOOGLE_CALENDAR_CREDENTIALS_FILE=""):
+            self.assertFalse(services.google_calendar_enabled())
+
+    def test_oauth_client_is_built_from_refresh_token(self):
+        from django.test import override_settings
+        with override_settings(GOOGLE_OAUTH_CLIENT_ID="id", GOOGLE_OAUTH_CLIENT_SECRET="sec",
+                               GOOGLE_OAUTH_REFRESH_TOKEN="tok"), \
+                mock.patch("googleapiclient.discovery.build") as build:
+            services._calendar_client()
+        creds = build.call_args.kwargs["credentials"]
+        self.assertEqual(creds.refresh_token, "tok")
+        self.assertEqual(creds.client_id, "id")
+
+    def test_meet_link_is_requested_at_the_scheduled_time(self):
+        from django.test import override_settings
+        start = timezone.now() + timedelta(days=2)
+        fake = mock.MagicMock()
+        fake.events.return_value.insert.return_value.execute.return_value = {
+            "hangoutLink": "https://meet.google.com/abc-defg-hij", "id": "evt9"}
+        with override_settings(GOOGLE_OAUTH_CLIENT_ID="id", GOOGLE_OAUTH_CLIENT_SECRET="sec",
+                               GOOGLE_OAUTH_REFRESH_TOKEN="tok"), \
+                mock.patch.object(services, "_calendar_client", return_value=fake):
+            link, event_id = services.create_meet_event(
+                summary="s", description="d", start_at=start, duration_minutes=30, attendee_emails=["a@b.c"])
+        self.assertEqual((link, event_id), ("https://meet.google.com/abc-defg-hij", "evt9"))
+        body = fake.events.return_value.insert.call_args.kwargs["body"]
+        self.assertEqual(body["start"]["dateTime"], start.isoformat())
+        self.assertIn("conferenceData", body)
+

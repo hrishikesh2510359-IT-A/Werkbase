@@ -22,12 +22,9 @@
         </div>
         <div class="flex items-center gap-3">
             {% for iv in app.interviews.all %}{% if iv.status == 'SCHEDULED' and iv.meet_link %}
-                {% if iv.is_join_window_open %}
-                    <a href="{{ iv.meet_link }}" target="_blank" rel="noopener" class="px-3 py-1.5 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primary-dark transition flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">videocam</span> Join</a>
-                {% else %}
-                    <span class="text-[12px] text-muted">Join opens 10 min before</span>
-                {% endif %}
+                <a href="{{ iv.meet_link }}" target="_blank" rel="noopener" class="px-3 py-1.5 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primary-dark transition flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">videocam</span> Join Google Meet</a>
             {% endif %}{% endfor %}
+            {% if app.status == 'SELECTED' %}<a href="{% url 'offer_letter' app.pk %}" class="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px] font-semibold hover:opacity-90 transition flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">description</span> View Offer Letter</a>{% endif %}
             {% include "_status_badge.html" with status=app.status label=app.get_status_display %}
         </div>
     </div>

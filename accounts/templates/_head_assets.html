@@ -1,36 +1,91 @@
 {% comment %}Single source of truth for fonts, Tailwind config (blue+green palette)
 and shared styles. Included by both base_app.html (the authenticated shell) and
-base_public.html (landing + auth). Change the palette here and everything follows.{% endcomment %}
+base_public.html (landing + auth). Change the palette here and everything follows.
+Colours are CSS variables (RGB triplets) so the light/dark switch is just a class on <html>.{% endcomment %}
+<script>
+    // Applied before first paint so there is no flash of the wrong theme.
+    // Saved choice wins; otherwise follow the operating-system setting.
+    (function () {
+        try {
+            var t = localStorage.getItem('wb-theme');
+            if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            document.documentElement.classList.toggle('dark', t === 'dark');
+        } catch (e) {}
+    })();
+    function wbSyncThemeIcons() {
+        var dark = document.documentElement.classList.contains('dark');
+        document.querySelectorAll('[data-theme-icon]').forEach(function (el) { el.textContent = dark ? 'light_mode' : 'dark_mode'; });
+    }
+    function wbToggleTheme() {
+        var dark = !document.documentElement.classList.contains('dark');
+        document.documentElement.classList.toggle('dark', dark);
+        try { localStorage.setItem('wb-theme', dark ? 'dark' : 'light'); } catch (e) {}
+        wbSyncThemeIcons();
+        // Charts bake their colours in when drawn; a reload redraws them in the new theme.
+        if (document.querySelector('canvas')) location.reload();
+    }
+    document.addEventListener('DOMContentLoaded', wbSyncThemeIcons);
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 
+<style>
+    :root {
+        --c-primary: 44 95 124;        /* steel blue */
+        --c-primary-dark: 30 66 88;
+        --c-primary-deep: 20 48 63;    /* headings */
+        --c-primary-soft: 219 232 240; /* light blue tint */
+        --c-accent: 95 125 79;         /* olive green */
+        --c-accent-soft: 232 238 221;  /* sage tint */
+        --c-background: 243 246 246;
+        --c-surface: 255 255 255;
+        --c-surface-alt: 245 248 248;
+        --c-on-surface: 20 48 63;
+        --c-muted: 90 107 115;
+        --c-border: 219 228 230;
+        --c-warning: 180 83 9;
+        --c-warning-soft: 246 236 210;
+        --c-danger: 179 38 30;
+        --c-danger-soft: 246 220 217;
+        --scroll-thumb: #cbd5d1;
+        color-scheme: light;
+    }
+    html.dark {
+        --c-primary: 74 141 179;
+        --c-primary-dark: 58 118 152;
+        --c-primary-deep: 227 238 244; /* "deep" headings flip to light text */
+        --c-primary-soft: 31 58 74;
+        --c-accent: 106 148 86;
+        --c-accent-soft: 32 48 28;
+        --c-background: 15 26 32;
+        --c-surface: 22 36 44;
+        --c-surface-alt: 28 45 55;
+        --c-on-surface: 230 238 242;
+        --c-muted: 157 176 185;
+        --c-border: 42 61 71;
+        --c-warning: 224 160 80;
+        --c-warning-soft: 58 45 18;
+        --c-danger: 214 90 80;
+        --c-danger-soft: 58 26 24;
+        --scroll-thumb: #3a5260;
+        color-scheme: dark;
+    }
+</style>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
+    function wbc(name) { return "rgb(var(--c-" + name + ") / <alpha-value>)"; }
     tailwind.config = {
         theme: {
             extend: {
                 colors: {
-                    // Blue + green combination carried over from the original Werkbase
-                    // palette, on a soft neutral ground.
-                    primary:       "#2C5F7C",  // steel blue
-                    "primary-dark":"#1E4258",
-                    "primary-deep":"#14303f",  // headings on light
-                    "primary-soft":"#dbe8f0",  // light blue tint
-                    accent:        "#5f7d4f",  // olive green (slightly cleaned)
-                    "accent-soft": "#e8eedd",  // sage tint
-                    background:    "#f3f6f6",   // soft cool neutral
-                    surface:       "#ffffff",
-                    "surface-alt": "#f5f8f8",
-                    "on-surface":  "#14303f",
-                    muted:         "#5a6b73",
-                    border:        "#dbe4e6",
-                    warning:       "#b45309",
-                    "warning-soft":"#f6ecd2",
-                    danger:        "#b3261e",
-                    "danger-soft": "#f6dcd9",
-                    info:          "#2C5F7C",
+                    primary: wbc("primary"), "primary-dark": wbc("primary-dark"), "primary-deep": wbc("primary-deep"),
+                    "primary-soft": wbc("primary-soft"), accent: wbc("accent"), "accent-soft": wbc("accent-soft"),
+                    background: wbc("background"), surface: wbc("surface"), "surface-alt": wbc("surface-alt"),
+                    "on-surface": wbc("on-surface"), muted: wbc("muted"), border: wbc("border"),
+                    warning: wbc("warning"), "warning-soft": wbc("warning-soft"),
+                    danger: wbc("danger"), "danger-soft": wbc("danger-soft"), info: wbc("primary"),
                 },
                 fontFamily: {
                     sans: ["Inter", "system-ui", "sans-serif"],
@@ -48,36 +103,36 @@ base_public.html (landing + auth). Change the palette here and everything follow
     .font-display { font-optical-sizing: auto; letter-spacing: -0.01em; }
     .stat-num { font-family: Inter, system-ui, sans-serif; font-weight: 800; letter-spacing: -0.02em; }
     .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5d1; border-radius: 4px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 4px; }
     .custom-scroll::-webkit-scrollbar-track { background: transparent; }
 
     /* Django renders form fields as bare inputs. Wrapping a <form> in .wb-form
        styles every control to match the design without touching forms.py. */
-    .wb-form label { display:block; font-size:0.8rem; font-weight:600; color:#5a6b73; margin-bottom:0.35rem; }
+    .wb-form label { display:block; font-size:0.8rem; font-weight:600; color:rgb(var(--c-muted)); margin-bottom:0.35rem; }
     .wb-form input:not([type=checkbox]):not([type=radio]),
     .wb-form select,
     .wb-form textarea {
-        width:100%; border:1px solid #dbe4e6; border-radius:0.65rem; padding:0.6rem 0.75rem;
-        background:#fff; font-size:0.92rem; color:#14303f; transition:border-color .15s, box-shadow .15s;
+        width:100%; border:1px solid rgb(var(--c-border)); border-radius:0.65rem; padding:0.6rem 0.75rem;
+        background:rgb(var(--c-surface)); font-size:0.92rem; color:rgb(var(--c-on-surface)); transition:border-color .15s, box-shadow .15s;
     }
     .wb-form input:not([type=checkbox]):not([type=radio]):focus,
     .wb-form select:focus,
     .wb-form textarea:focus {
-        outline:none; border-color:#2C5F7C; box-shadow:0 0 0 3px rgba(44,95,124,0.14);
+        outline:none; border-color:rgb(var(--c-primary)); box-shadow:0 0 0 3px rgb(var(--c-primary) / 0.18);
     }
     .wb-form input[type=file] {
-        width:100%; font-size:0.85rem; color:#5a6b73;
+        width:100%; font-size:0.85rem; color:rgb(var(--c-muted));
     }
     .wb-form input[type=file]::file-selector-button {
-        margin-right:0.75rem; padding:0.45rem 0.9rem; border:1px solid #dbe4e6; border-radius:0.55rem;
-        background:#f5f8f8; color:#14303f; font-weight:600; font-size:0.82rem; cursor:pointer;
+        margin-right:0.75rem; padding:0.45rem 0.9rem; border:1px solid rgb(var(--c-border)); border-radius:0.55rem;
+        background:rgb(var(--c-surface-alt)); color:rgb(var(--c-on-surface)); font-weight:600; font-size:0.82rem; cursor:pointer;
     }
     .wb-field { margin-bottom:1rem; }
-    .wb-form input[type=checkbox], .wb-form input[type=radio] { accent-color:#2C5F7C; width:1rem; height:1rem; }
+    .wb-form input[type=checkbox], .wb-form input[type=radio] { accent-color:rgb(var(--c-primary)); width:1rem; height:1rem; }
 
     /* Tag-input widget (skills on profile + job posting forms). */
-    .tag-input-box { display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; padding:0.5rem; border:1px solid #dbe4e6; border-radius:0.65rem; background:#fff; }
+    .tag-input-box { display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; padding:0.5rem; border:1px solid rgb(var(--c-border)); border-radius:0.65rem; background:rgb(var(--c-surface)); }
     .tag-input-box input[type=text] { border:none !important; outline:none; box-shadow:none !important; flex:1; min-width:120px; font-size:0.9rem; padding:0.25rem; }
-    .tag-chip { display:inline-flex; align-items:center; gap:0.35rem; background:#dbe8f0; color:#14303f; font-size:0.8rem; font-weight:600; padding:0.2rem 0.55rem; border-radius:999px; }
-    .tag-chip button { background:none; border:none; color:#2C5F7C; cursor:pointer; font-size:0.9rem; line-height:1; padding:0; }
+    .tag-chip { display:inline-flex; align-items:center; gap:0.35rem; background:rgb(var(--c-primary-soft)); color:rgb(var(--c-primary-deep)); font-size:0.8rem; font-weight:600; padding:0.2rem 0.55rem; border-radius:999px; }
+    .tag-chip button { background:none; border:none; color:rgb(var(--c-primary)); cursor:pointer; font-size:0.9rem; line-height:1; padding:0; }
 </style>

@@ -1,7 +1,10 @@
 from datetime import timedelta
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.http import JsonResponse
+from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -177,7 +180,7 @@ def my_interviews_view(request):
 
     rows = [{
         "interview": interview,
-        "can_join": interview.is_join_window_open,
+        "can_join": interview.can_join,
         "can_give_feedback": (
             interview.status == Interview.Status.SCHEDULED
             and now >= interview.scheduled_at + timedelta(minutes=FEEDBACK_UNLOCK_MINUTES_AFTER_START)
@@ -222,13 +225,42 @@ def submit_feedback_view(request, pk):
 
 
 # ---------------------------------------------------------------------------
-# Candidate — notifications
+# Notifications (every role)
 # ---------------------------------------------------------------------------
 
-@role_required(User.Role.CANDIDATE)
+@login_required
+def notifications_poll_view(request):
+    """Feeds the live pop-ups. Returns the user's not-yet-popped notifications
+    (oldest first) and the unread count, marking the popped ones as shown so
+    each notification pops exactly once. Always scoped to request.user."""
+    fresh = list(Notification.objects.filter(recipient=request.user, popup_shown=False).order_by("id")[:5])
+    if fresh:
+        Notification.objects.filter(pk__in=[n.pk for n in fresh]).update(popup_shown=True)
+    # A selected-but-not-yet-celebrated application triggers the centre pop-up.
+    selected = (
+        Application.objects.filter(candidate=request.user, status=Application.Status.SELECTED, congrats_seen=False)
+        .select_related("job_posting").order_by("decided_at").first()
+    )
+    celebrate = None
+    if selected:
+        celebrate = {
+            "id": selected.pk,
+            "name": request.user.full_name.split(" ")[0] if request.user.full_name else "",
+            "job_title": selected.job_posting.job_title,
+            "offer_url": reverse("offer_letter", args=[selected.pk]),
+            "seen_url": reverse("celebration_seen", args=[selected.pk]),
+        }
+    return JsonResponse({
+        "unread": Notification.objects.filter(recipient=request.user, is_read=False).count(),
+        "items": [{"id": n.pk, "message": n.message, "link": n.link} for n in fresh],
+        "celebrate": celebrate,
+    })
+
+
+@login_required
 def my_notifications_view(request):
-    # Ownership boundary: a candidate only ever sees their own notifications.
+    # Ownership boundary: a user only ever sees their own notifications.
     notifications = Notification.objects.filter(recipient=request.user)
     # Viewing the page is the read receipt.
-    Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+    Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True, popup_shown=True)
     return render(request, "interviews/my_notifications.html", {"notifications": notifications})

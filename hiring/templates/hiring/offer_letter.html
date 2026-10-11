@@ -1,0 +1,38 @@
+{% extends "base_app.html" %}
+
+{% block title %}Werkbase — Offer Letter{% endblock %}
+{% block page_title %}Offer Letter{% endblock %}
+{% block topbar_actions %}
+<a href="{% url 'offer_letter_pdf' application.pk %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition"><span class="material-symbols-outlined text-[18px]">download</span> Download PDF</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto bg-surface border border-border rounded-2xl shadow-sm p-8 sm:p-12">
+    <div class="border-b-2 border-accent pb-4 mb-6">
+        <p class="font-display text-3xl font-semibold text-primary">{{ letter.company }}</p>
+        <p class="text-[12px] text-muted">Recruitment &amp; Talent Acquisition</p>
+    </div>
+
+    <p class="text-[12px] text-muted mb-6">Ref: {{ letter.reference }} &nbsp;|&nbsp; Date: {{ letter.issued_on|date:"d F Y" }}</p>
+
+    <h2 class="font-display text-lg font-semibold text-primary-deep mb-3">OFFER OF EMPLOYMENT</h2>
+    <p class="text-on-surface mb-3">Dear {{ letter.candidate_name }},</p>
+    <p class="text-on-surface leading-relaxed mb-5">We are delighted to offer you the position of <strong>{{ letter.job_title }}</strong> at {{ letter.company }}. Following your interview, we were impressed by your skills and experience and believe you will be a valuable member of our team. The terms of your offer are below.</p>
+
+    <div class="rounded-xl border border-border overflow-hidden mb-5 text-sm">
+        {% for label, value in terms %}
+        <div class="grid grid-cols-3 border-b border-border last:border-b-0 bg-surface-alt">
+            <div class="px-4 py-2.5 font-semibold text-primary-deep">{{ label }}</div>
+            <div class="px-4 py-2.5 col-span-2 text-on-surface">{{ value }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <p class="text-on-surface leading-relaxed mb-3">This offer is subject to satisfactory verification of your documents and references. Please report on the date of joining mentioned above; our team will contact you through the portal with onboarding details.</p>
+    <p class="text-on-surface mb-8">We look forward to welcoming you.</p>
+
+    <p class="text-on-surface">Sincerely,</p>
+    <p class="font-semibold text-on-surface mt-6">{{ letter.signer_name }}</p>
+    <p class="text-[13px] text-muted">{{ letter.signer_title }}, {{ letter.company }}</p>
+</div>
+{% endblock %}

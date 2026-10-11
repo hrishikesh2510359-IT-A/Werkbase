@@ -2,15 +2,10 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db import models
-from django.utils import timezone
 
 from job_postings.models import Application
 
-from .constants import (
-    DEFAULT_INTERVIEW_DURATION_MINUTES,
-    JOIN_WINDOW_MINUTES_AFTER,
-    JOIN_WINDOW_MINUTES_BEFORE,
-)
+from .constants import DEFAULT_INTERVIEW_DURATION_MINUTES
 
 
 class Interview(models.Model):
@@ -69,16 +64,11 @@ class Interview(models.Model):
         return self.scheduled_at + timedelta(minutes=self.duration_minutes)
 
     @property
-    def is_join_window_open(self):
-        """The Meet link is visible from the moment it's booked but only
-        clickable near the slot - a live-looking link days early just invites
-        people to join an empty call and assume something is broken."""
-        if self.status != self.Status.SCHEDULED or not self.meet_link:
-            return False
-        now = timezone.now()
-        opens_at = self.scheduled_at - timedelta(minutes=JOIN_WINDOW_MINUTES_BEFORE)
-        closes_at = self.scheduled_at + timedelta(minutes=JOIN_WINDOW_MINUTES_AFTER)
-        return opens_at <= now <= closes_at
+    def can_join(self):
+        """The Join button is shown for any scheduled interview that has a
+        link - no time window. Whoever clicks early just waits in the Meet
+        lobby; hiding the link made it look like no link had been generated."""
+        return self.status == self.Status.SCHEDULED and bool(self.meet_link)
 
 
 class Notification(models.Model):
@@ -96,6 +86,9 @@ class Notification(models.Model):
     # Relative URL the notification points at, e.g. "/jobs/applications/mine/".
     link = models.CharField(max_length=300, blank=True)
     is_read = models.BooleanField(default=False)
+    # The live pop-up (toast) is shown once per notification; this records it so
+    # a page reload never re-pops old news. Independent of is_read (the bell).
+    popup_shown = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

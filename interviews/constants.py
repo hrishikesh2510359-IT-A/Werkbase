@@ -15,14 +15,6 @@ DOUBLE_BOOKING_BUFFER_MINUTES = 10
 # Guards against scheduling something that has effectively already started.
 MIN_SCHEDULING_LEAD_MINUTES = 15
 
-# --- Join window -----------------------------------------------------------
-# Design choice (the spec left this open): the Meet link is always *visible* to
-# the candidate so they know it exists, but only becomes clickable shortly
-# before the slot. Showing a dead-but-clickable link earlier invites people to
-# join an empty call and assume something is broken.
-JOIN_WINDOW_MINUTES_BEFORE = 10
-JOIN_WINDOW_MINUTES_AFTER = 120
-
 # --- Feedback --------------------------------------------------------------
 # Feedback unlocks once the slot has started - an interviewer shouldn't be able
 # to file a verdict on a conversation that hasn't happened yet.

@@ -57,7 +57,7 @@
                     <div class="flex flex-wrap items-center gap-2">
                         {% if iv.meet_link and row.can_join %}
                             <a href="{{ iv.meet_link }}" target="_blank" rel="noopener" class="px-3 py-1.5 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primary-dark transition flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-[16px]">videocam</span> Join
+                                <span class="material-symbols-outlined text-[16px]">videocam</span> Join Google Meet
                             </a>
                         {% endif %}
                         {% if row.can_give_feedback %}
@@ -110,6 +110,38 @@
 {# HR RECRUITER                                                          #}
 {# ==================================================================== #}
 {% elif request.user.role == 'HR_RECRUITER' %}
+<div class="rounded-2xl bg-surface border border-border shadow-sm mb-5">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+        <h3 class="font-display font-bold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">how_to_reg</span> New Applicants <span class="text-sm font-normal text-muted">— waiting for your shortlist decision</span></h3>
+        <a href="{% url 'job_posting_list' %}" class="text-sm font-semibold text-primary hover:underline">By job</a>
+    </div>
+    <div class="divide-y divide-border">
+        {% for app in new_applicants %}
+        <div class="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <p class="font-semibold text-on-surface text-sm">{{ app.candidate.full_name }}</p>
+                    {% if app.fit_tier %}<span class="px-2 py-0.5 rounded-full text-[10px] font-bold {% if app.fit_tier == 'strong' %}bg-accent-soft text-accent{% elif app.fit_tier == 'potential' %}bg-primary-soft text-primary-deep{% else %}bg-surface-alt text-muted border border-border{% endif %}">{{ app.fit_tier|capfirst }} fit</span>{% endif %}
+                </div>
+                <p class="text-[12px] text-muted">Applied for <a href="{% url 'ranked_candidates' app.job_posting.pk %}" class="text-primary hover:underline">{{ app.job_posting.job_title }}</a> · {{ app.applied_at|date:"d M" }}</p>
+            </div>
+            <div class="flex items-center gap-2 w-40">
+                <div class="flex-1 h-1.5 rounded-full bg-surface-alt overflow-hidden"><div class="h-full rounded-full bg-primary" style="width:{{ app.match_score|default_if_none:0 }}%;"></div></div>
+                <span class="stat-num text-sm text-on-surface w-10 text-right">{% if app.match_score is None %}—{% else %}{{ app.match_score }}%{% endif %}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <a href="{% url 'score_card' app.pk %}" class="px-2.5 py-1.5 rounded-lg border border-border text-[13px] font-medium hover:bg-surface-alt transition">Review</a>
+                <form method="post" action="{% url 'update_application_status' app.pk 'shortlist' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'dashboard' %}"><button class="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px] font-semibold hover:opacity-90 transition">Shortlist</button></form>
+                <form method="post" action="{% url 'update_application_status' app.pk 'reject' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'dashboard' %}"><button class="px-3 py-1.5 rounded-lg border border-border text-muted text-[13px] font-medium hover:bg-danger-soft hover:text-danger transition">Reject</button></form>
+            </div>
+        </div>
+        {% empty %}
+        <div class="px-5 py-10 text-center"><span class="material-symbols-outlined text-[36px] text-border">task_alt</span><p class="text-sm text-muted mt-1">No applicants waiting. You're all caught up.</p></div>
+        {% endfor %}
+        {% if new_applicants_total > 8 %}<div class="px-5 py-3 text-center text-[13px] text-muted">+ {{ new_applicants_total|add:"-8" }} more — open a job below to see them all.</div>{% endif %}
+    </div>
+</div>
+
 <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
     <div class="rounded-2xl bg-surface border border-border shadow-sm">
         <div class="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -142,7 +174,10 @@
                     <p class="font-semibold text-on-surface text-sm truncate">{{ posting.job_title }}</p>
                     <p class="text-[12px] text-muted">{{ posting.get_department_display }} · {{ posting.location }}</p>
                 </div>
-                {% include "_status_badge.html" with status=posting.status label=posting.get_status_display %}
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="{% url 'ranked_candidates' posting.pk %}" class="px-2.5 py-1 rounded-lg bg-primary-soft text-primary-deep text-[12px] font-semibold hover:bg-primary hover:text-white transition">{{ posting.applicant_count }} applicant{{ posting.applicant_count|pluralize }}{% if posting.new_count %} · {{ posting.new_count }} new{% endif %}</a>
+                    {% include "_status_badge.html" with status=posting.status label=posting.get_status_display %}
+                </div>
             </div>
             {% empty %}
             <div class="px-5 py-10 text-center"><p class="text-sm text-muted">You haven't posted any jobs yet.</p></div>
@@ -182,6 +217,35 @@
 {# CANDIDATE                                                             #}
 {# ==================================================================== #}
 {% elif request.user.role == 'CANDIDATE' %}
+{% if upcoming_interviews %}
+<div class="rounded-2xl bg-surface border border-accent/40 shadow-sm mb-5">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+        <h3 class="font-display font-bold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-accent">videocam</span> Your Upcoming Interviews</h3>
+    </div>
+    <div class="divide-y divide-border">
+        {% for iv in upcoming_interviews %}
+        <div class="px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="min-w-0">
+                <p class="font-semibold text-on-surface">{{ iv.application.job_posting.job_title }}</p>
+                <p class="text-[13px] text-primary-deep font-medium flex items-center gap-1.5 mt-0.5">
+                    <span class="material-symbols-outlined text-[16px]">calendar_month</span>
+                    {{ iv.scheduled_at|date:"D, d M Y" }} at {{ iv.scheduled_at|time:"g:i A" }} <span class="text-muted font-normal">({{ iv.duration_minutes }} min)</span>
+                </p>
+                <p class="text-[12px] text-muted mt-0.5">Interviewer: {{ iv.interviewer.full_name }}</p>
+            </div>
+            {% if iv.can_join %}
+                <a href="{{ iv.meet_link }}" target="_blank" rel="noopener" class="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition shadow-sm flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">videocam</span> Join Google Meet
+                </a>
+            {% else %}
+                <span class="text-[12px] text-muted">Meeting link will appear here once it's ready.</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
     <div class="rounded-2xl bg-surface border border-border shadow-sm">
         <div class="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -251,7 +315,31 @@
 </div>
 
 {# ==================================================================== #}
-{# HR MANAGER / ONBOARDING COORDINATOR — honest placeholder             #}
+{# HR MANAGER — final hiring decisions                                   #}
+{# ==================================================================== #}
+{% elif request.user.role == 'HR_MANAGER' %}
+<div class="rounded-2xl bg-surface border border-border shadow-sm">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+        <h3 class="font-display font-bold text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">how_to_reg</span> Awaiting Your Decision</h3>
+        <a href="{% url 'hiring_decisions' %}" class="text-sm font-semibold text-primary hover:underline">Open decisions</a>
+    </div>
+    <div class="divide-y divide-border">
+        {% for app in hm_awaiting %}
+        <div class="px-5 py-3.5 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <p class="font-semibold text-on-surface text-sm truncate">{{ app.candidate.full_name }}</p>
+                <p class="text-[12px] text-muted truncate">{{ app.job_posting.job_title }} · interviewed</p>
+            </div>
+            <a href="{% url 'hiring_decisions' %}" class="shrink-0 px-3 py-1.5 rounded-lg bg-primary-soft text-primary-deep text-[13px] font-semibold hover:bg-primary hover:text-white transition">Review</a>
+        </div>
+        {% empty %}
+        <div class="px-5 py-10 text-center"><p class="text-sm text-muted">No candidates awaiting a decision right now.</p></div>
+        {% endfor %}
+    </div>
+</div>
+
+{# ==================================================================== #}
+{# ONBOARDING COORDINATOR — honest placeholder                           #}
 {# ==================================================================== #}
 {% else %}
 <div class="rounded-2xl bg-surface border border-border shadow-sm px-6 py-16 text-center">

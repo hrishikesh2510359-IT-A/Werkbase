@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db.models import Count, F, Q
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
@@ -9,9 +10,8 @@ from job_postings.models import Application, JobPosting, VacancyRequest
 
 from .decorators import hr_admin_required
 from .forms import CompanyUserCreateForm, LoginForm
+from .google_login import google_login_enabled
 from .models import User
-
-GOOGLE_DEMO_EMAIL = "google.demo@werkbase.com"
 
 
 def _dashboard_context(user):
@@ -33,11 +33,26 @@ def _dashboard_context(user):
         # Ownership boundary: only this recruiter's own postings.
         my_postings = JobPosting.objects.filter(posted_by=user)
         pending_queue = VacancyRequest.objects.filter(status=VacancyRequest.Status.PENDING)
+        # Applicants surface here so the recruiter never has to hunt for them:
+        # everyone still waiting for a shortlist decision, best match first.
+        my_applications = Application.objects.filter(job_posting__posted_by=user)
+        new_applicants = (
+            my_applications.filter(status=Application.Status.APPLIED)
+            .select_related("candidate", "job_posting")
+            .order_by(F("match_score").desc(nulls_last=True), "applied_at")
+        )
+        recent_postings = my_postings.annotate(
+            applicant_count=Count("applications"),
+            new_count=Count("applications", filter=Q(applications__status=Application.Status.APPLIED)),
+        )[:5]
         return {
-            "recent_postings": my_postings[:5],
+            "recent_postings": recent_postings,
             "pending_queue": pending_queue,
+            "new_applicants": new_applicants[:8],
+            "new_applicants_total": new_applicants.count(),
             "stats": [
-                {"label": "Draft", "value": my_postings.filter(status=JobPosting.Status.DRAFT).count()},
+                {"label": "New applicants", "value": new_applicants.count()},
+                {"label": "Shortlisted", "value": my_applications.filter(status=Application.Status.SHORTLISTED).count()},
                 {"label": "Published", "value": my_postings.filter(status=JobPosting.Status.PUBLISHED).count()},
             ],
         }
@@ -65,7 +80,7 @@ def _dashboard_context(user):
         )
         interview_rows = [{
             "interview": iv,
-            "can_join": iv.is_join_window_open,
+            "can_join": iv.can_join,
             "can_give_feedback": now >= iv.scheduled_at,
         } for iv in upcoming]
 
@@ -83,12 +98,24 @@ def _dashboard_context(user):
     if user.role == User.Role.CANDIDATE:
         # Ownership boundary: only this candidate's own applications.
         my_applications = Application.objects.filter(candidate=user).select_related("job_posting")
+        # Ownership boundary: only this candidate's own interviews. Surfaced on
+        # the dashboard so the Join button is one click away, not inside
+        # My Applications.
+        upcoming_interviews = (
+            Interview.objects.filter(application__candidate=user, status=Interview.Status.SCHEDULED)
+            .select_related("application__job_posting", "interviewer")
+            .order_by("scheduled_at")
+        )
         return {
-            "recent_jobs": JobPosting.objects.filter(status=JobPosting.Status.PUBLISHED)[:5],
+            "upcoming_interviews": upcoming_interviews,
+            "recent_jobs": JobPosting.objects.filter(status=JobPosting.Status.PUBLISHED).exclude(
+                applications__candidate=user, applications__status=Application.Status.SELECTED
+            )[:5],
             "recent_applications": my_applications[:5],
             "unread_notifications": Notification.objects.filter(recipient=user, is_read=False).count(),
             "stats": [
                 {"label": "Applications submitted", "value": my_applications.count()},
+                {"label": "Upcoming interviews", "value": upcoming_interviews.count()},
             ],
         }
 
@@ -100,7 +127,21 @@ def _dashboard_context(user):
             ],
         }
 
-    # HR Manager, Onboarding Coordinator: no workflow exists for them yet in this
+    if user.role == User.Role.HR_MANAGER:
+        # Interviewed candidates awaiting the HR Manager's final decision.
+        awaiting = (
+            Application.objects.filter(status=Application.Status.INTERVIEWED)
+            .select_related("candidate", "job_posting")[:5]
+        )
+        return {
+            "hm_awaiting": awaiting,
+            "stats": [
+                {"label": "Awaiting decision", "value": Application.objects.filter(status=Application.Status.INTERVIEWED).count()},
+                {"label": "Selected", "value": Application.objects.filter(status=Application.Status.SELECTED).count()},
+            ],
+        }
+
+    # Onboarding Coordinator: no workflow exists for them yet in this
     # module - an honest placeholder, no fake numbers, no dead buttons.
     return {}
 
@@ -115,7 +156,7 @@ def candidate_login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
 
-    error = None
+    error = request.session.pop('login_error', None)
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
@@ -133,14 +174,14 @@ def candidate_login_view(request):
     else:
         form = LoginForm()
 
-    return render(request, 'accounts/candidate_login.html', {'form': form, 'error': error})
+    return render(request, 'accounts/candidate_login.html', {'form': form, 'error': error, 'google_enabled': google_login_enabled()})
 
 
 def company_login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
 
-    error = None
+    error = request.session.pop('login_error', None)
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
@@ -158,7 +199,7 @@ def company_login_view(request):
     else:
         form = LoginForm()
 
-    return render(request, 'accounts/company_login.html', {'form': form, 'error': error})
+    return render(request, 'accounts/company_login.html', {'form': form, 'error': error, 'google_enabled': google_login_enabled()})
 
 
 @hr_admin_required
@@ -184,16 +225,6 @@ def create_company_user_view(request):
         form = CompanyUserCreateForm()
 
     return render(request, 'accounts/create_user.html', {'form': form, 'created_user': created_user})
-
-
-def google_login_stub(request):
-    # Sprint X: replace with real Google OAuth via django-allauth.
-    user, _ = User.objects.get_or_create(
-        email=GOOGLE_DEMO_EMAIL,
-        defaults={'full_name': 'Google Demo User', 'role': User.Role.HIRING_MANAGER},
-    )
-    login(request, user)
-    return redirect('dashboard')
 
 
 @login_required

@@ -66,10 +66,6 @@
                         <a href="{% url 'my_profile' %}" class="{{ base }} {% if un == 'my_profile' %}{{ on }}{% else %}{{ idle }}{% endif %}">
                             <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">account_circle</span> My Profile</span>
                         </a>
-                        <a href="{% url 'my_notifications' %}" class="{{ base }} {% if un == 'my_notifications' %}{{ on }}{% else %}{{ idle }}{% endif %}">
-                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">notifications</span> Notifications</span>
-                            {% if unread_notifications %}<span class="px-2 py-0.5 rounded-full bg-danger text-white text-[10px] font-bold">{{ unread_notifications }}</span>{% endif %}
-                        </a>
 
                     {% elif role == 'HR_RECRUITER' %}
                         <a href="{% url 'pending_vacancies' %}" class="{{ base }} {% if un == 'pending_vacancies' %}{{ on }}{% else %}{{ idle }}{% endif %}">
@@ -109,12 +105,25 @@
                             <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">bar_chart</span> Analytics</span>
                         </a>
 
+                    {% elif role == 'HR_MANAGER' %}
+                        <a href="{% url 'hiring_decisions' %}" class="{{ base }} {% if un == 'hiring_decisions' or un == 'decide_application' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">how_to_reg</span> Hiring Decisions</span>
+                        </a>
+                        <a href="{% url 'analytics_dashboard' %}" class="{{ base }} {% if un == 'analytics_dashboard' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                            <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">bar_chart</span> Analytics</span>
+                        </a>
+
                     {% else %}
-                        {# HR Manager / Onboarding Coordinator: workflows arrive in a later module. #}
+                        {# Onboarding Coordinator: workflow arrives in a later module. #}
                         <a href="{% url 'analytics_dashboard' %}" class="{{ base }} {% if un == 'analytics_dashboard' %}{{ on }}{% else %}{{ idle }}{% endif %}">
                             <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">bar_chart</span> Analytics</span>
                         </a>
                     {% endif %}
+
+                    <a href="{% url 'my_notifications' %}" class="{{ base }} {% if un == 'my_notifications' %}{{ on }}{% else %}{{ idle }}{% endif %}">
+                        <span class="flex items-center gap-3"><span class="material-symbols-outlined text-[20px]">notifications</span> Notifications</span>
+                        <span id="nav-unread" class="px-2 py-0.5 rounded-full bg-danger text-white text-[10px] font-bold {% if not unread_notifications %}hidden{% endif %}">{{ unread_notifications }}</span>
+                    </a>
                     {% endwith %}
                 </nav>
             </div>
@@ -154,12 +163,11 @@
             </div>
             <div class="flex items-center gap-2">
                 {% block topbar_actions %}{% endblock %}
-                {% if role == 'CANDIDATE' %}
-                    <a href="{% url 'my_notifications' %}" class="relative p-2 rounded-lg text-muted hover:bg-surface-alt transition">
-                        <span class="material-symbols-outlined text-[22px]">notifications</span>
-                        {% if unread_notifications %}<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-danger ring-2 ring-surface"></span>{% endif %}
-                    </a>
-                {% endif %}
+                {% include "_theme_toggle.html" %}
+                <a href="{% url 'my_notifications' %}" class="relative p-2 rounded-lg text-muted hover:bg-surface-alt transition" aria-label="Notifications">
+                    <span class="material-symbols-outlined text-[22px]">notifications</span>
+                    <span id="bell-dot" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-danger ring-2 ring-surface {% if not unread_notifications %}hidden{% endif %}"></span>
+                </a>
                 <div class="hidden sm:flex items-center gap-2 pl-2">
                     <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">
                         {{ request.user.full_name|slice:":1"|upper }}
@@ -185,7 +193,143 @@
     </main>
     {% endwith %}
 
+    <!-- Live notification pop-ups -->
+    <div id="toast-stack" class="fixed top-20 right-4 z-50 flex flex-col gap-2.5 w-[min(22rem,calc(100vw-2rem))] pointer-events-none" aria-live="polite"></div>
     <script>
+        (function () {
+            var stack = document.getElementById('toast-stack');
+            var navBadge = document.getElementById('nav-unread');
+            var bellDot = document.getElementById('bell-dot');
+            var POLL_URL = "{% url 'notifications_poll' %}";
+
+            function setUnread(n) {
+                if (navBadge) { navBadge.textContent = n; navBadge.classList.toggle('hidden', !n); }
+                if (bellDot) { bellDot.classList.toggle('hidden', !n); }
+            }
+            function toast(item) {
+                var el = document.createElement('div');
+                el.className = 'pointer-events-auto flex items-start gap-3 p-3.5 rounded-xl bg-surface border border-border border-l-4 border-l-accent shadow-lg transition duration-300 opacity-0 translate-x-4';
+                var icon = document.createElement('span');
+                icon.className = 'material-symbols-outlined text-[20px] text-accent mt-0.5';
+                icon.textContent = 'notifications_active';
+                var body = document.createElement('div');
+                body.className = 'min-w-0 flex-1';
+                var msg = document.createElement(item.link ? 'a' : 'p');
+                msg.className = 'block text-sm text-on-surface leading-snug' + (item.link ? ' hover:underline' : '');
+                if (item.link) msg.href = item.link;
+                msg.textContent = item.message;          // textContent: names are user-supplied
+                body.appendChild(msg);
+                var close = document.createElement('button');
+                close.className = 'text-muted hover:text-on-surface';
+                close.setAttribute('aria-label', 'Dismiss');
+                close.innerHTML = '<span class="material-symbols-outlined text-[18px]">close</span>';
+                function dismiss() { el.classList.add('opacity-0', 'translate-x-4'); setTimeout(function () { el.remove(); }, 300); }
+                close.addEventListener('click', dismiss);
+                el.append(icon, body, close);
+                stack.appendChild(el);
+                requestAnimationFrame(function () { el.classList.remove('opacity-0', 'translate-x-4'); });
+                setTimeout(dismiss, 9000);
+            }
+            // ---- Selection celebration: centre pop-up + confetti ------------------
+            var CSRF = "{{ csrf_token }}";
+            var celebrating = false;
+            function markSeen(url) {
+                fetch(url, { method: 'POST', credentials: 'same-origin', keepalive: true, headers: { 'X-CSRFToken': CSRF } });
+            }
+            function confetti(canvas, stopSignal) {
+                if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+                var ctx = canvas.getContext('2d'), W, H;
+                function size() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+                size(); window.addEventListener('resize', size);
+                var colors = ['#4a8db3', '#6a9456', '#e0a050', '#d65a50', '#a8b892', '#ffffff'];
+                var bits = [];
+                for (var i = 0; i < 160; i++) {
+                    bits.push({ x: Math.random() * W, y: -20 - Math.random() * H * 0.6, w: 6 + Math.random() * 6, h: 8 + Math.random() * 8,
+                                vx: -1.5 + Math.random() * 3, vy: 2 + Math.random() * 3.5, rot: Math.random() * 6.28, vr: -0.2 + Math.random() * 0.4,
+                                c: colors[(Math.random() * colors.length) | 0] });
+                }
+                var start = Date.now();
+                (function frame() {
+                    if (stopSignal.done) return;
+                    ctx.clearRect(0, 0, W, H);
+                    var t = Date.now() - start, alive = false;
+                    bits.forEach(function (b) {
+                        b.x += b.vx; b.y += b.vy; b.rot += b.vr; b.vy += 0.02;
+                        if (b.y < H + 20) alive = true;
+                        ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
+                        ctx.globalAlpha = t > 6000 ? Math.max(0, 1 - (t - 6000) / 1500) : 1;
+                        ctx.fillStyle = b.c; ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h); ctx.restore();
+                    });
+                    if (alive && t < 7500) requestAnimationFrame(frame); else ctx.clearRect(0, 0, W, H);
+                })();
+            }
+            function showCelebration(c) {
+                if (celebrating) return;
+                celebrating = true;
+                var stop = { done: false };
+                var overlay = document.createElement('div');
+                overlay.className = 'fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/55';
+                overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-label', 'Congratulations');
+                var canvas = document.createElement('canvas');
+                canvas.className = 'absolute inset-0 w-full h-full pointer-events-none';
+                var card = document.createElement('div');
+                card.className = 'relative w-full max-w-md rounded-2xl bg-surface border border-border shadow-2xl p-8 text-center';
+
+                var badge = document.createElement('div');
+                badge.className = 'mx-auto mb-4 w-16 h-16 rounded-full bg-accent-soft text-accent flex items-center justify-center';
+                badge.innerHTML = '<span class="material-symbols-outlined text-[36px] ms-fill">celebration</span>';
+                var h = document.createElement('h2');
+                h.className = 'font-display text-2xl font-bold text-primary-deep';
+                h.textContent = 'Congratulations' + (c.name ? ', ' + c.name : '') + '!';
+                var p1 = document.createElement('p');
+                p1.className = 'mt-2 text-on-surface';
+                p1.append('You have been selected for ');
+                var strong = document.createElement('strong'); strong.textContent = c.job_title; p1.append(strong, '.');
+                var p2 = document.createElement('p');
+                p2.className = 'mt-1 text-sm text-muted';
+                p2.textContent = 'Your offer letter is ready. This is the result of all your hard work — well done!';
+                var row = document.createElement('div');
+                row.className = 'mt-6 flex flex-col sm:flex-row gap-2.5 justify-center';
+                var view = document.createElement('a');
+                view.href = c.offer_url;
+                view.className = 'px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark transition shadow-sm';
+                view.textContent = 'View Offer Letter';
+                var dismissBtn = document.createElement('button');
+                dismissBtn.type = 'button';
+                dismissBtn.className = 'px-5 py-2.5 rounded-xl border border-border text-on-surface text-sm font-medium hover:bg-surface-alt transition';
+                dismissBtn.textContent = 'Dismiss';
+                row.append(view, dismissBtn);
+                card.append(badge, h, p1, p2, row);
+                overlay.append(canvas, card);
+                document.body.appendChild(overlay);
+                confetti(canvas, stop);
+                dismissBtn.focus();
+
+                function close() {
+                    stop.done = true; overlay.remove(); document.removeEventListener('keydown', onKey);
+                    markSeen(c.seen_url);
+                }
+                function onKey(e) { if (e.key === 'Escape') close(); }
+                document.addEventListener('keydown', onKey);
+                dismissBtn.addEventListener('click', close);
+                view.addEventListener('click', function () { markSeen(c.seen_url); });   // then follows the link
+            }
+
+            function poll() {
+                fetch(POLL_URL, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.ok ? r.json() : null; })
+                    .then(function (data) {
+                        if (!data) return;
+                        setUnread(data.unread);
+                        data.items.forEach(toast);
+                        if (data.celebrate) showCelebration(data.celebrate);
+                    })
+                    .catch(function () { /* offline / server restarting: try again next tick */ });
+            }
+            poll();
+            setInterval(function () { if (!document.hidden) poll(); }, 8000);
+            document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
+        })();
         (function () {
             var sb = document.getElementById('app-sidebar');
             var ov = document.getElementById('sidebar-overlay');

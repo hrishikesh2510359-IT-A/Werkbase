@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import google_login, views
 
 urlpatterns = [
     path('', views.portal_select_view, name='portal_select'),
@@ -13,7 +13,8 @@ urlpatterns = [
     path('company/login/', views.company_login_view, name='company_login'),
     path('company/users/new/', views.create_company_user_view, name='create_company_user'),
 
-    path('auth/google/', views.google_login_stub, name='google_login_stub'),
+    path('auth/google/callback/', google_login.google_login_callback, name='google_callback'),
+    path('auth/google/<str:portal>/', google_login.google_login_start, name='google_login'),
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.dashboard_view, name='dashboard'),
 ]

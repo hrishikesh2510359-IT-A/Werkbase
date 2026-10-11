@@ -8,5 +8,6 @@ urlpatterns = [
     path('<int:pk>/reschedule/', views.reschedule_interview_view, name='reschedule_interview'),
     path('<int:pk>/cancel/', views.cancel_interview_view, name='cancel_interview'),
     path('<int:pk>/feedback/', views.submit_feedback_view, name='submit_feedback'),
+    path('notifications/poll/', views.notifications_poll_view, name='notifications_poll'),
     path('notifications/', views.my_notifications_view, name='my_notifications'),
 ]

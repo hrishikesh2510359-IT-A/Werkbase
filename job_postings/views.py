@@ -1,10 +1,12 @@
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, models
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.decorators import role_required
 from accounts.models import User
+from interviews.services import notify, notify_application_staff, notify_users, users_with_role
 from screening.services import score_application
 
 from .forms import ApplicationForm, JobPostingForm, VacancyRequestForm
@@ -21,13 +23,19 @@ def raise_vacancy_view(request):
     if request.method == "POST":
         form = VacancyRequestForm(request.POST)
         if form.is_valid():
-            VacancyRequest.objects.create(
+            vacancy = VacancyRequest.objects.create(
                 job_title=form.cleaned_data["job_title"],
                 department=form.cleaned_data["department"],
                 num_openings=form.cleaned_data["num_openings"],
                 description=form.cleaned_data["description"],
                 priority=form.cleaned_data["priority"],
                 raised_by=request.user,  # never taken from the form
+            )
+            notify_users(
+                users_with_role(User.Role.HR_RECRUITER),
+                f"New vacancy request: {vacancy.job_title} ({vacancy.get_department_display()}) "
+                f"from {request.user.full_name}.",
+                link="/jobs/vacancy-requests/pending/", actor=request.user,
             )
             messages.success(request, "Vacancy request submitted. HR Recruiter has been notified.")
             return redirect("my_vacancy_requests")
@@ -106,6 +114,16 @@ def pending_vacancies_view(request):
     return render(request, "job_postings/pending_vacancies.html", {"pending": pending})
 
 
+def _notify_posted(posting, actor):
+    """Tells the hiring manager their vacancy is now a live job posting."""
+    if posting.vacancy_request_id:
+        notify_users(
+            [posting.vacancy_request.raised_by],
+            f"Your vacancy '{posting.job_title}' is now a published job posting.",
+            link="/jobs/vacancy-requests/mine/", actor=actor,
+        )
+
+
 # Security boundary: only an HR Recruiter can create job postings.
 @role_required(User.Role.HR_RECRUITER)
 def create_job_posting_view(request):
@@ -122,6 +140,8 @@ def create_job_posting_view(request):
             if vacancy_request:
                 vacancy_request.status = VacancyRequest.Status.POSTED
                 vacancy_request.save(update_fields=["status"])
+            if status == JobPosting.Status.PUBLISHED:
+                _notify_posted(posting, request.user)
             messages.success(request, f"Job posting '{posting.job_title}' saved as {posting.get_status_display()}.")
             return redirect("job_posting_list")
     else:
@@ -194,7 +214,10 @@ def edit_job_posting_view(request, pk):
 def job_posting_list_view(request):
     # Ownership boundary: a recruiter only manages the postings they personally created,
     # not every posting created by anyone holding the HR Recruiter role.
-    postings = JobPosting.objects.filter(posted_by=request.user)
+    postings = JobPosting.objects.filter(posted_by=request.user).annotate(
+        applicant_count=Count("applications"),
+        new_count=Count("applications", filter=Q(applications__status=Application.Status.APPLIED)),
+    )
     return render(request, "job_postings/job_posting_list.html", {"postings": postings})
 
 
@@ -215,6 +238,8 @@ def transition_job_posting_view(request, pk, action):
         raise PermissionDenied("Invalid status transition.")
 
     posting.save(update_fields=["status"])
+    if posting.status == JobPosting.Status.PUBLISHED:
+        _notify_posted(posting, request.user)
     messages.success(request, f"'{posting.job_title}' is now {posting.get_status_display()}.")
     return redirect("job_posting_list")
 
@@ -272,8 +297,11 @@ def delete_job_posting_view(request, pk):
 # Security boundary: only a Candidate can browse the job site / apply.
 @role_required(User.Role.CANDIDATE)
 def browse_jobs_view(request):
-    # Never show Draft/Closed postings to candidates.
-    postings = JobPosting.objects.filter(status=JobPosting.Status.PUBLISHED)
+    # Never show Draft/Closed postings to candidates - nor a role this
+    # candidate has already been selected for (nothing left to apply to).
+    postings = JobPosting.objects.filter(status=JobPosting.Status.PUBLISHED).exclude(
+        applications__candidate=request.user, applications__status=Application.Status.SELECTED
+    )
 
     query = request.GET.get("q", "").strip()
     department = request.GET.get("department", "").strip()
@@ -351,6 +379,17 @@ def apply_job_view(request, pk):
                 # Score at apply-time so the recruiter's ranked list is ready
                 # immediately. Advisory only - never changes the application status.
                 score_application(application)
+                notify(
+                    request.user,
+                    f"Application received for {posting.job_title}. We'll keep you posted here.",
+                    link="/jobs/applications/mine/",
+                )
+                score_text = f" ({application.match_score}% match)" if application.match_score is not None else ""
+                notify_application_staff(
+                    application,
+                    f"New applicant: {request.user.full_name} applied for {posting.job_title}{score_text}.",
+                    actor=request.user,
+                )
                 messages.success(request, f"Application submitted for {posting.job_title}.")
                 return redirect("my_applications")
     else:

@@ -1,0 +1,85 @@
+{% extends "base_app.html" %}
+
+{% block title %}Werkbase — Hiring Decisions{% endblock %}
+{% block page_title %}Hiring Decisions{% endblock %}
+{% block page_subtitle %}<p class="text-[12px] text-muted">Approve or reject interviewed candidates</p>{% endblock %}
+
+{% block content %}
+<!-- Awaiting decision -->
+<div class="bg-surface border border-border rounded-2xl shadow-sm mb-6">
+    <div class="px-5 py-4 border-b border-border">
+        <h3 class="font-display font-semibold text-primary-deep flex items-center gap-2"><span class="material-symbols-outlined text-primary">how_to_reg</span> Awaiting Your Decision</h3>
+    </div>
+    <div class="divide-y divide-border">
+        {% for row in awaiting_rows %}
+        {% with app=row.application iv=row.interview %}
+        <div class="px-5 py-4">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div class="min-w-0 flex-1">
+                    <p class="font-semibold text-on-surface">{{ app.candidate.full_name }}</p>
+                    <p class="text-[13px] text-muted">{{ app.job_posting.job_title }}{% if app.match_score is not None %} · {{ app.match_score }}% match{% endif %}</p>
+                    {% if iv %}
+                    <div class="mt-2 p-3 rounded-xl bg-surface-alt border border-border">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-[12px] font-semibold text-muted">Interviewer feedback</span>
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold {% if iv.recommendation == 'PROCEED' %}bg-accent-soft text-accent{% elif iv.recommendation == 'REJECT' %}bg-danger-soft text-danger{% else %}bg-primary-soft text-primary-deep{% endif %}">{{ iv.get_recommendation_display }}</span>
+                            <span class="text-[12px] text-on-surface font-semibold">{{ iv.rating }}/5</span>
+                            <span class="text-[11px] text-muted">by {{ iv.interviewer.full_name }}</span>
+                        </div>
+                        {% if iv.feedback_comment %}<p class="text-[13px] text-on-surface mt-1.5 leading-relaxed">"{{ iv.feedback_comment }}"</p>{% endif %}
+                    </div>
+                    {% else %}
+                    <p class="text-[12px] text-muted mt-1">No completed interview feedback on record.</p>
+                    {% endif %}
+                </div>
+            </div>
+            <form method="post" class="wb-form mt-3">
+                {% csrf_token %}
+                <input type="text" name="note" placeholder="Optional decision note…" class="mb-2">
+                <div class="grid sm:grid-cols-2 gap-2 mb-2">
+                    <div><label class="text-[11px] font-semibold text-muted">Offer: annual CTC <span class="font-normal">(needed to select)</span></label><input type="text" name="offer_ctc" placeholder="e.g. ₹8,00,000 per annum"></div>
+                    <div><label class="text-[11px] font-semibold text-muted">Offer: joining date <span class="font-normal">(needed to select)</span></label><input type="date" name="joining_date"></div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="submit" formaction="{% url 'decide_application' app.pk 'select' %}" class="px-4 py-2 rounded-xl bg-accent text-white text-sm font-semibold hover:opacity-90 transition shadow-sm">Select / Hire</button>
+                    <button type="submit" formaction="{% url 'decide_application' app.pk 'reject' %}" class="px-4 py-2 rounded-xl border border-border text-muted text-sm font-medium hover:bg-danger-soft hover:text-danger transition">Reject</button>
+                </div>
+            </form>
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div class="px-5 py-12 text-center"><span class="material-symbols-outlined text-[40px] text-border">inbox</span><p class="text-sm text-muted mt-2">No candidates awaiting a decision.</p></div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Recent decisions -->
+<div class="bg-surface border border-border rounded-2xl shadow-sm">
+    <div class="px-5 py-4 border-b border-border">
+        <h3 class="font-display font-semibold text-primary-deep flex items-center gap-2"><span class="material-symbols-outlined text-primary">history</span> Recent Decisions</h3>
+    </div>
+    <div class="divide-y divide-border">
+        {% for app in decided %}
+        <div class="px-5 py-3.5 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <p class="font-semibold text-on-surface text-sm">{{ app.candidate.full_name }}</p>
+                <p class="text-[12px] text-muted">{{ app.job_posting.job_title }} · decided {{ app.decided_at|date:"M j, Y" }}</p>
+            </div>
+            <div class="flex items-center gap-3">
+                {% if app.status == 'SELECTED' %}
+                    {% if app.offer_email_sent_at %}
+                        <span class="text-[12px] text-accent font-medium flex items-center gap-1" title="Emailed {{ app.offer_email_sent_at|date:'d M Y, g:i A' }}"><span class="material-symbols-outlined text-[16px]">mark_email_read</span> Emailed</span>
+                    {% else %}
+                        <form method="post" action="{% url 'resend_offer_email' app.pk %}">{% csrf_token %}<button class="px-3 py-1.5 rounded-lg border border-warning/40 bg-warning-soft text-warning text-[13px] font-medium hover:opacity-90 transition flex items-center gap-1.5" title="The offer email has not gone out yet"><span class="material-symbols-outlined text-[16px]">forward_to_inbox</span> Send email</button></form>
+                    {% endif %}
+                {% endif %}
+                {% if app.status == 'SELECTED' %}<a href="{% url 'offer_letter' app.pk %}" class="px-3 py-1.5 rounded-lg border border-border text-[13px] font-medium text-primary hover:bg-surface-alt transition flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">description</span> Offer letter</a>{% endif %}
+                {% include "_status_badge.html" with status=app.status label=app.get_status_display %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="px-5 py-10 text-center"><p class="text-sm text-muted">No decisions recorded yet.</p></div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -221,8 +221,20 @@ def _extract_skills(section_text):
 
 def parse_resume(uploaded_file):
     """Returns a dict of extracted-but-unverified profile data for the signup
-    review step. Every field is safe to leave blank - the candidate reviews all of it."""
+    review step. Every field is safe to leave blank - the candidate reviews all of it.
+
+    Uses the free Gemini-based reader when GEMINI_API_KEY is set; on any failure
+    (or no key) falls through to the offline rule-based parser below."""
     text = extract_text(uploaded_file)
+
+    from .ai_resume_parser import ai_parse_resume, is_enabled
+    if is_enabled():
+        uploaded_file.seek(0)
+        ai_result = ai_parse_resume(uploaded_file.read(), uploaded_file.name, text)
+        uploaded_file.seek(0)
+        if ai_result is not None:
+            return ai_result
+
     if not text.strip():
         return {"email": "", "phone": "", "education": [], "experience": [], "skills": []}
 

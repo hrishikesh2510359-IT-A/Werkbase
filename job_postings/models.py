@@ -220,6 +220,30 @@ class Application(models.Model):
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.APPLIED)
     applied_at = models.DateTimeField(auto_now_add=True)
 
+    # --- Final hiring decision (HR Manager) --------------------------------
+    # Set when an HR Manager approves/rejects an INTERVIEWED candidate, so the
+    # decision is auditable (who, when, why) rather than just a status flip.
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="hiring_decisions",
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decision_note = models.TextField(blank=True)
+
+    # --- Offer letter terms (set only when SELECTED) -------------------------
+    # Free text on purpose ("8,00,000 per annum"): the letter prints it as typed.
+    offer_ctc = models.CharField(max_length=100, blank=True)
+    # The congratulations pop-up is shown until the candidate dismisses it once.
+    congrats_seen = models.BooleanField(default=False)
+    # Set when the offer letter email was handed to the mail server successfully.
+    offer_email_sent_at = models.DateTimeField(null=True, blank=True)
+    offer_joining_date = models.DateField(null=True, blank=True)
+
+    @property
+    def offer_reference(self):
+        year = (self.decided_at or self.applied_at).year
+        return f"WB-OFR-{year}-{self.pk:05d}"
+
     class Meta:
         ordering = ["-applied_at"]
         constraints = [
